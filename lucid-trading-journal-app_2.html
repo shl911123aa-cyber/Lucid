@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Lucid Trading Journal</title>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Lucid Journal" />
+<meta name="theme-color" content="#2563eb" />
+<style>
+  :root {
+    --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0;
+    --text: #0f172a; --text2: #64748b; --text3: #94a3b8;
+    --blue: #2563eb; --green: #10b981; --red: #ef4444; --amber: #f59e0b;
+    --green-bg: #ecfdf5; --red-bg: #fef2f2; --amber-bg: #fffbeb; --blue-bg: #eff6ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #020617; --card: #0f172a; --border: #1e293b;
+      --text: #f1f5f9; --text2: #94a3b8; --text3: #475569;
+      --green-bg: #022c22; --red-bg: #2c0a0a; --amber-bg: #2c1e05; --blue-bg: #0a1e3c;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5; font-size: 14px;
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+
+  header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .head-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 0; }
+  .head-title { font-size: 18px; font-weight: 600; }
+  .head-sub { font-size: 12px; color: var(--text2); }
+  .head-stats { display: flex; gap: 16px; }
+  .head-stat { text-align: right; }
+  .head-stat .lbl { font-size: 12px; color: var(--text2); }
+  .head-stat .val { font-size: 18px; font-weight: 600; }
+
+  nav { display: flex; gap: 4px; overflow-x: auto; }
+  nav button {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    padding: 8px 12px; font-size: 14px; font-weight: 500; color: var(--text2);
+    cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+    font-family: inherit;
+  }
+  nav button.active { color: var(--blue); border-bottom-color: var(--blue); }
+  nav button:hover:not(.active) { color: var(--text); }
+
+  main { padding: 20px 0; }
+  .grid { display: grid; gap: 12px; }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g6 { grid-template-columns: repeat(6, 1fr); }
+  @media (max-width: 900px) { .g6 { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) { .g6 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: 1fr; } .hide-sm { display: none; } .hide-mobile { display: none !important; } .show-mobile { display: block !important; } }
+  .tg { display:inline-block; padding:1px 7px; border-radius:999px; background:var(--bg); border:1px solid var(--border); color:var(--text2); font-size:11px; line-height:1.6; white-space:nowrap; }
+  .tg-blue { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); }
+  .tg-red { background:var(--red-bg); border-color:var(--red); color:var(--red); }
+  .iconbtn { padding:4px 7px; border:none; background:none; font-size:14px; }
+  .iconbtn:hover { background:var(--bg); }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .card-sm { padding: 14px; }
+  .card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+
+  .stat-lbl { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .stat-val { font-size: 20px; font-weight: 600; }
+  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .green { color: var(--green); } .red { color: var(--red); } .amber { color: var(--amber); }
+
+  .stack { display: flex; flex-direction: column; gap: 20px; }
+  .row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  .bar-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+
+  button.btn {
+    padding: 6px 12px; font-size: 14px; border-radius: 6px; cursor: pointer;
+    background: var(--card); color: var(--text); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
+  }
+  button.btn:hover { background: var(--bg); }
+  button.btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  button.btn.danger { color: var(--red); }
+  button.btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); width: 100%; justify-content: center; padding: 10px; }
+  button.btn.primary:hover { background: #1d4ed8; }
+  .tagbtn {
+    padding: 6px 12px; font-size: 13px; border-radius: 999px; cursor: pointer;
+    background: var(--bg); color: var(--text2); border: 1px solid var(--border);
+    font-family: inherit; transition: all .12s;
+  }
+  .tagbtn:hover { border-color: var(--blue); color: var(--text); }
+  .tagbtn.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .droparea {
+    display:block; border:1.5px dashed var(--border); border-radius:8px; padding:18px;
+    text-align:center; color:var(--text2); font-size:13px; cursor:pointer; transition:all .15s; background:var(--bg);
+  }
+  .droparea:hover { border-color:var(--blue); color:var(--text); }
+  .droparea.dragging { border-color:var(--blue); background:var(--blue-bg); }
+  .shot-thumb { position:relative; width:88px; height:64px; border-radius:6px; overflow:hidden; border:1px solid var(--border); background:var(--bg); }
+  .shot-thumb.lg { width:120px; height:88px; }
+  .shot-thumb img { width:100%; height:100%; object-fit:cover; cursor:pointer; display:block; background:var(--card); }
+  .shot-del {
+    position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%;
+    background:rgba(0,0,0,0.6); color:#fff; border:none; cursor:pointer; font-size:14px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .shot-del:hover { background:var(--red); }
+  .shot-count {
+    display:inline-block; min-width:15px; height:15px; line-height:15px; padding:0 3px; margin-left:2px;
+    background:var(--blue); color:#fff; border-radius:999px; font-size:10px; vertical-align:top;
+  }
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:50;
+    display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto;
+  }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; width:100%; max-width:560px; }
+  .lightbox-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:60;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .lightbox-overlay img { max-width:96vw; max-height:92vh; border-radius:6px; }
+  .lightbox-close {
+    position:fixed; top:16px; right:20px; width:40px; height:40px; border-radius:50%;
+    background:rgba(255,255,255,0.15); color:#fff; border:none; font-size:24px; cursor:pointer;
+  }
+  .lightbox-close:hover { background:rgba(255,255,255,0.3); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead { background: var(--bg); border-bottom: 1px solid var(--border); }
+  th { text-align: left; padding: 8px 12px; font-weight: 500; color: var(--text2); }
+  th.r, td.r { text-align: right; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: var(--bg); }
+  .table-foot { padding: 8px 12px; background: var(--bg); font-size: 12px; color: var(--text2); border-top: 1px solid var(--border); }
+
+  label.fld { display: block; }
+  label.fld .l { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+  input, select, textarea {
+    width: 100%; padding: 8px 12px; font-size: 14px; border-radius: 6px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .checkbox-row input { width: 16px; height: 16px; accent-color: var(--blue); }
+
+  .alert { border-radius: 8px; padding: 16px; display: flex; gap: 12px; }
+  .alert.amber { background: var(--amber-bg); border: 1px solid var(--amber); }
+  .alert.blue { background: var(--blue-bg); }
+
+  .check-item {
+    display: flex; align-items: flex-start; gap: 12px; padding: 12px;
+    border-radius: 6px; border: 1px solid var(--border); background: var(--bg);
+    cursor: pointer; transition: all .15s;
+  }
+  .check-item.on { background: var(--green-bg); border-color: var(--green); }
+  .check-item input { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--green); flex-shrink: 0; }
+
+  .rule { display: flex; gap: 12px; }
+  .rule .num {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--red-bg);
+    color: var(--red); display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+  }
+  .pill { font-size: 12px; padding: 2px 8px; border-radius: 4px; background: var(--bg); }
+  footer { padding: 24px 16px; text-align: center; font-size: 12px; color: var(--text3); }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
+  .badge.ls { background: var(--green-bg); color: var(--green); }
+  .muted { color: var(--text3); }
+  svg text { font-family: inherit; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+//=================== 設定 ===================
+var R_UNIT = 200, START_BALANCE = 50000, TARGET_R = 15;
+var LS_KEY = 'lucid_trades_v3', COOKIE_KEY = 'lucid_summary';
+
+//=================== 標籤分類（固定標準套）===================
+var TAX = {
+  direction: { label:'方向', opts:[['long','做多'],['short','做空']] },
+  symbol:    { label:'商品', opts:[['EURUSD','EURUSD'],['GBPUSD','GBPUSD'],['XAUUSD','黃金'],['USDJPY','USDJPY'],['other','其他']] },
+  setup:     { label:'Setup', opts:[['ema','EMA反彈'],['range','Range回歸'],['breakout','突破回踩'],['fakeout','假突破'],['other','其他']] },
+  news:      { label:'新聞', opts:[['pre','新聞前'],['post','新聞後'],['none','無關']] },
+  emotion:   { label:'情緒', opts:[['calm','😊 平靜'],['normal','😐 普通'],['revenge','😤 報復交易'],['overconf','😎 過度自信']] }
+};
+function taxLabel(field, val) {
+  if (!val) return '';
+  var o = TAX[field].opts.filter(function(x){return x[0]===val;})[0];
+  return o ? o[1] : val;
+}
+// 盤口：依進場時間 (UTC+8) 自動推算
+// 亞洲 06:00-14:00 / 歐洲 14:00-20:00 / 美盤 20:00-04:00(隔日) / 其餘 盤前
+function sessionFromTime(time) {
+  if (!time || time.indexOf(':')<0) return '';
+  var h = parseInt(time.split(':')[0],10);
+  var m = parseInt(time.split(':')[1],10);
+  if (isNaN(h)) return '';
+  var mins = h*60 + (isNaN(m)?0:m);
+  if (mins>=360 && mins<840) return 'asia';     // 06:00-14:00
+  if (mins>=840 && mins<1200) return 'europe';  // 14:00-20:00
+  if (mins>=1200 || mins<240) return 'us';      // 20:00-04:00
+  return 'other';
+}
+function sessionLabel(s) {
+  return {asia:'亞洲盤',europe:'歐洲盤',us:'美盤',other:'其他'}[s] || '—';
+}
+// 黃金時段判定（你發現的 21:35 後）
+function isGoldenTime(time) {
+  if (!time || time.indexOf(':')<0) return false;
+  var p = time.split(':');
+  var mins = parseInt(p[0],10)*60 + parseInt(p[1],10);
+  return mins >= (21*60+35) || mins < 240; // 21:35 之後（含跨夜到 04:00）
+}
+// 時段分桶（4 小時一段）供時間分析
+function timeBucket(time) {
+  if (!time || time.indexOf(':')<0) return null;
+  var h = parseInt(time.split(':')[0],10);
+  if (isNaN(h)) return null;
+  if (h>=8 && h<12) return '08-12';
+  if (h>=12 && h<16) return '12-16';
+  if (h>=16 && h<20) return '16-20';
+  if (h>=20 && h<24) return '20-24';
+  if (h>=0 && h<4) return '00-04';
+  if (h>=4 && h<8) return '04-08';
+  return null;
+}
+
+//=================== 預設 50 筆 ===================
+var DEFAULT_TRADES = [
+  {date:'2026-05-26',seq:1,time:'',r:-1.13,balance:49773,notes:'均線上方做空風險比較大'},
+  {date:'2026-05-26',seq:2,time:'',r:-1.04,balance:49564,notes:'最高碰到斐波0.764，沒到止盈位置0.864'},
+  {date:'2026-05-27',seq:1,time:'',r:-1.06,balance:49351,notes:''},
+  {date:'2026-05-27',seq:2,time:'',r:-0.84,balance:49183,notes:'倉位下錯 多一倍'},
+  {date:'2026-05-27',seq:3,time:'',r:-0.59,balance:49064,notes:''},
+  {date:'2026-05-28',seq:1,time:'',r:1.94,balance:49452,notes:''},
+  {date:'2026-05-28',seq:2,time:'',r:-1.01,balance:49249,notes:''},
+  {date:'2026-06-01',seq:1,time:'',r:-0.91,balance:49067,notes:''},
+  {date:'2026-06-01',seq:2,time:'',r:2.05,balance:49476,notes:''},
+  {date:'2026-06-02',seq:1,time:'',r:-1.02,balance:49271,notes:''},
+  {date:'2026-06-02',seq:2,time:'',r:2.12,balance:49695,notes:'做空原因 碰到H4 100EMA'},
+  {date:'2026-06-03',seq:1,time:'',r:-1.01,balance:49492,notes:''},
+  {date:'2026-06-03',seq:2,time:'',r:-1.04,balance:49284,notes:''},
+  {date:'2026-06-03',seq:3,time:'',r:-0.96,balance:49092,notes:''},
+  {date:'2026-06-03',seq:4,time:'',r:-0.87,balance:48917,notes:''},
+  {date:'2026-06-03',seq:5,time:'',r:-1.03,balance:48711,notes:''},
+  {date:'2026-06-04',seq:1,time:'',r:2.59,balance:49228,notes:''},
+  {date:'2026-06-04',seq:2,time:'',r:-1.03,balance:49021,notes:''},
+  {date:'2026-06-05',seq:1,time:'',r:-0.95,balance:48831,notes:''},
+  {date:'2026-06-05',seq:2,time:'',r:-0.87,balance:48656,notes:''},
+  {date:'2026-06-05',seq:3,time:'',r:4.87,balance:49629,notes:''},
+  {date:'2026-06-06',seq:1,time:'',r:-1.07,balance:49415,notes:''},
+  {date:'2026-06-06',seq:2,time:'',r:2.24,balance:49863,notes:''},
+  {date:'2026-06-08',seq:1,time:'',r:-1.03,balance:49656,notes:''},
+  {date:'2026-06-08',seq:2,time:'',r:-1,balance:49455,notes:''},
+  {date:'2026-06-08',seq:3,time:'',r:-1.26,balance:49202,notes:''},
+  {date:'2026-06-08',seq:4,time:'',r:0.09,balance:49219,notes:''},
+  {date:'2026-06-08',seq:5,time:'',r:-1.09,balance:49000,notes:''},
+  {date:'2026-06-08',seq:6,time:'',r:5.34,balance:50068,notes:'我得出結論: UTC+8 21:35後再做交易'},
+  {date:'2026-06-10',seq:1,time:'',r:-1,balance:49868,notes:''},
+  {date:'2026-06-10',seq:2,time:'',r:-1.06,balance:49656,notes:''},
+  {date:'2026-06-10',seq:3,time:'',r:2.07,balance:50070,notes:''},
+  {date:'2026-06-11',seq:1,time:'',r:2.09,balance:50488,notes:''},
+  {date:'2026-06-12',seq:1,time:'',r:-1.06,balance:50276,notes:''},
+  {date:'2026-06-12',seq:2,time:'',r:3.66,balance:51008,notes:'高點'},
+  {date:'2026-06-12',seq:3,time:'',r:-1.04,balance:50800,notes:''},
+  {date:'2026-06-12',seq:4,time:'',r:-1,balance:50599,notes:''},
+  {date:'2026-06-12',seq:5,time:'',r:-1.58,balance:50283,notes:''},
+  {date:'2026-06-15',seq:1,time:'',r:-1.03,balance:50076,notes:''},
+  {date:'2026-06-15',seq:2,time:'',r:2.25,balance:50526,notes:''},
+  {date:'2026-06-16',seq:1,time:'',r:-1.02,balance:50322,notes:''},
+  {date:'2026-06-16',seq:2,time:'',r:-1,balance:50121,notes:''},
+  {date:'2026-06-16',seq:3,time:'',r:-1.1,balance:49900,notes:''},
+  {date:'2026-06-16',seq:4,time:'',r:-1.05,balance:49690,notes:''},
+  {date:'2026-06-16',seq:5,time:'',r:-1.04,balance:49481,notes:''},
+  {date:'2026-06-16',seq:6,time:'',r:2.04,balance:49888,notes:''},
+  {date:'2026-06-16',seq:7,time:'',r:-1.03,balance:49682,notes:''},
+  {date:'2026-06-16',seq:8,time:'',r:-1.03,balance:49475,notes:''},
+  {date:'2026-06-17',seq:1,time:'',r:0.36,balance:49546,notes:''},
+  {date:'2026-06-18',seq:1,time:'',r:-1.06,balance:49334,notes:''},
+  {date:'2026-06-18',seq:2,time:'',r:3.25,balance:49983,notes:''}
+];
+
+//=================== 儲存：localStorage 主 + cookie 備援 ===================
+function setCookie(name, value, days) {
+  var d = new Date(); d.setTime(d.getTime() + days*24*60*60*1000);
+  try { document.cookie = name+'='+encodeURIComponent(value)+';expires='+d.toUTCString()+';path=/;SameSite=Lax'; } catch(e){}
+}
+function getCookie(name) {
+  var m = document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)');
+  return m ? decodeURIComponent(m.pop()) : null;
+}
+var storageMode = 'unknown';
+function lsAvailable() {
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); return true; } catch(e){ return false; }
+}
+function saveData(trades) {
+  var json = JSON.stringify(trades);
+  var ok = false;
+  if (lsAvailable()) {
+    try { localStorage.setItem(LS_KEY, json); localStorage.setItem(LS_KEY+'_mtime', new Date().toISOString()); ok = true; storageMode = 'localStorage'; } catch(e){}
+  }
+  // cookie 存摘要備援（最近 8 筆 + 統計），完整資料靠 localStorage
+  var s = calcStats(trades);
+  var summary = { n: trades.length, totalR: Math.round(s.totalR*100)/100, bal: Math.round(s.currentBalance), last: trades.slice(-8) };
+  var sjson = JSON.stringify(summary);
+  if (sjson.length < 3800) setCookie(COOKIE_KEY, sjson, 365);
+  if (!ok) storageMode = 'cookie-only';
+  return ok;
+}
+function loadData() {
+  if (lsAvailable()) {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) { var p = JSON.parse(raw); if (Array.isArray(p) && p.length) { storageMode='localStorage'; return p; } }
+    } catch(e){}
+    storageMode = 'localStorage';
+  } else {
+    storageMode = 'cookie-only';
+  }
+  return DEFAULT_TRADES.slice();
+}
+
+//=================== 統計 ===================
+//=================== 截圖儲存（IndexedDB）===================
+var IDB_NAME = 'lucid_shots', IDB_STORE = 'images', _idb = null;
+function idbOpen() {
+  return new Promise(function(resolve, reject){
+    if (_idb) return resolve(_idb);
+    if (!window.indexedDB) return reject(new Error('此瀏覽器不支援 IndexedDB'));
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function(e){ var db=e.target.result; if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE); };
+    req.onsuccess = function(e){ _idb=e.target.result; resolve(_idb); };
+    req.onerror = function(){ reject(req.error); };
+  });
+}
+function idbPut(id, dataUrl) {
+  return idbOpen().then(function(db){ return new Promise(function(res,rej){
+    var tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).put(dataUrl,id);
+    tx.oncomplete=function(){res(id);}; tx.onerror=function(){rej(tx.error);};
+  });});
+}
+function idbGet(id) {
+  return idbOpen().then(function(db){ return new Promise(function(res,rej){
+    var tx=db.transaction(IDB_STORE,'readonly'); var r=tx.objectStore(IDB_STORE).get(id);
+    r.onsuccess=function(){res(r.result||null);}; r.onerror=function(){rej(r.error);};
+  });});
+}
+function idbDel(id) {
+  return idbOpen().then(function(db){ return new Promise(function(res,rej){
+    var tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).delete(id);
+    tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);};
+  });});
+}
+function newShotId(){ return 'img_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+
+// 壓縮圖片：最長邊限制 + JPEG 品質，回傳 dataURL
+function compressImage(file, maxDim, quality) {
+  return new Promise(function(resolve, reject){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var w=img.width, h=img.height;
+        if (w>h && w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; }
+        else if (h>=w && h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; }
+        var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        var ctx=cv.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+        try { resolve(cv.toDataURL('image/jpeg', quality)); }
+        catch(err){ reject(err); }
+      };
+      img.onerror=function(){ reject(new Error('圖片讀取失敗')); };
+      img.src=e.target.result;
+    };
+    reader.onerror=function(){ reject(new Error('檔案讀取失敗')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function sortTrades(t) {
+  return t.slice().sort(function(a,b){ if(a.date!==b.date) return a.date<b.date?-1:1; return a.seq-b.seq; });
+}
+function calcStats(trades) {
+  if (!trades.length) return {totalR:0,winRate:0,avgWin:0,avgLoss:0,payoff:0,expectancy:0,breakEvenWR:0,maxDD:0,maxLossStreak:0,maxWinStreak:0,winCount:0,lossCount:0,totalTrades:0,currentBalance:START_BALANCE,peakBalance:START_BALANCE,troughBalance:START_BALANCE};
+  var s = sortTrades(trades);
+  var totalR = s.reduce(function(a,t){return a+t.r;},0);
+  var wins = s.filter(function(t){return t.r>0;});
+  var losses = s.filter(function(t){return t.r<0;});
+  var winRate = wins.length/s.length;
+  var avgWin = wins.length ? wins.reduce(function(a,t){return a+t.r;},0)/wins.length : 0;
+  var avgLoss = losses.length ? losses.reduce(function(a,t){return a+t.r;},0)/losses.length : 0;
+  var payoff = Math.abs(avgLoss)>0 ? avgWin/Math.abs(avgLoss) : 0;
+  var expectancy = totalR/s.length;
+  var breakEvenWR = payoff>0 ? 1/(1+payoff) : 0;
+  var peak=START_BALANCE, maxDD=0, trough=START_BALANCE;
+  s.forEach(function(t){ if(t.balance>peak)peak=t.balance; if(t.balance<trough)trough=t.balance; var dd=(peak-t.balance)/R_UNIT; if(dd>maxDD)maxDD=dd; });
+  var cls=0,mls=0,cws=0,mws=0;
+  s.forEach(function(t){ if(t.r<0){cls++;cws=0;if(cls>mls)mls=cls;} else if(t.r>0){cws++;cls=0;if(cws>mws)mws=cws;} });
+  return {totalR:totalR,winRate:winRate,avgWin:avgWin,avgLoss:avgLoss,payoff:payoff,expectancy:expectancy,breakEvenWR:breakEvenWR,maxDD:maxDD,maxLossStreak:mls,maxWinStreak:mws,winCount:wins.length,lossCount:losses.length,totalTrades:s.length,currentBalance:s[s.length-1].balance,peakBalance:peak,troughBalance:trough};
+}
+function groupByDate(trades) {
+  var s = sortTrades(trades), g = {}, order = [];
+  s.forEach(function(t){ if(!g[t.date]){g[t.date]={date:t.date,trades:[],totalR:0};order.push(t.date);} g[t.date].trades.push(t); g[t.date].totalR+=t.r; });
+  return order.map(function(d){return g[d];});
+}
+// 餘額為準：每筆的 balance 是真實值，R 由「本筆餘額 - 前一筆餘額」推算
+function recalc(trades) {
+  var s = sortTrades(trades), prev = START_BALANCE;
+  return s.map(function(t){
+    var c={}; for(var k in t)c[k]=t[k];
+    var bal = (typeof t.balance==='number' && !isNaN(t.balance)) ? t.balance : prev;
+    c.balance = Math.round(bal*100)/100;
+    c.r = Math.round(((c.balance - prev)/R_UNIT)*100)/100;
+    prev = c.balance;
+    return c;
+  });
+}
+function fmtR(r){ return (r>=0?'+':'')+r.toFixed(2)+'R'; }
+function fmtU(u){ return (u>=0?'+':'')+Math.round(u).toLocaleString()+'U'; }
+function fmtP(p){ return (p*100).toFixed(1)+'%'; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+//=================== SVG 折線圖 ===================
+function lineChart(data, w, h) {
+  if (!data.length) return '';
+  var pad = {t:10,r:50,b:24,l:48};
+  var iw = w-pad.l-pad.r, ih = h-pad.t-pad.b;
+  var vals = data.map(function(d){return d.balance;});
+  var min = Math.min.apply(null, vals)-200, max = Math.max.apply(null, vals)+200;
+  var targetY = START_BALANCE + TARGET_R*R_UNIT;
+  max = Math.max(max, targetY+100);
+  var rng = max-min || 1;
+  function x(i){ return pad.l + (data.length>1 ? i/(data.length-1)*iw : iw/2); }
+  function y(v){ return pad.t + (1-(v-min)/rng)*ih; }
+  var pts = data.map(function(d,i){return x(i)+','+y(d.balance);}).join(' ');
+  var area = pad.l+','+(pad.t+ih)+' '+pts+' '+(pad.l+iw)+','+(pad.t+ih);
+  var startY = y(START_BALANCE), tY = y(targetY);
+  var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" style="display:block">';
+  // y grid
+  for (var gi=0; gi<=4; gi++){
+    var gv = min + rng*gi/4, gy = y(gv);
+    svg += '<line x1="'+pad.l+'" y1="'+gy+'" x2="'+(pad.l+iw)+'" y2="'+gy+'" stroke="var(--border)" stroke-width="1"/>';
+    svg += '<text x="'+(pad.l-6)+'" y="'+(gy+3)+'" text-anchor="end" font-size="10" fill="var(--text3)">'+Math.round(gv).toLocaleString()+'</text>';
+  }
+  // start line
+  svg += '<line x1="'+pad.l+'" y1="'+startY+'" x2="'+(pad.l+iw)+'" y2="'+startY+'" stroke="var(--text3)" stroke-width="1" stroke-dasharray="3 3"/>';
+  // target line
+  svg += '<line x1="'+pad.l+'" y1="'+tY+'" x2="'+(pad.l+iw)+'" y2="'+tY+'" stroke="var(--green)" stroke-width="1" stroke-dasharray="3 3"/>';
+  svg += '<text x="'+(pad.l+iw)+'" y="'+(tY-4)+'" text-anchor="end" font-size="10" fill="var(--green)">目標 +15R</text>';
+  // area + line
+  svg += '<polygon points="'+area+'" fill="var(--blue)" opacity="0.08"/>';
+  svg += '<polyline points="'+pts+'" fill="none" stroke="var(--blue)" stroke-width="2"/>';
+  // x labels (sparse)
+  var step = Math.max(1, Math.ceil(data.length/10));
+  data.forEach(function(d,i){
+    if (i%step===0 || i===data.length-1){
+      svg += '<text x="'+x(i)+'" y="'+(h-8)+'" text-anchor="middle" font-size="9" fill="var(--text3)">'+d.label+'</text>';
+    }
+  });
+  // last point dot
+  var li = data.length-1;
+  svg += '<circle cx="'+x(li)+'" cy="'+y(data[li].balance)+'" r="3" fill="var(--blue)"/>';
+  svg += '</svg>';
+  return svg;
+}
+
+//=================== SVG 長條圖 ===================
+function barChart(data, w, h) {
+  if (!data.length) return '';
+  var pad = {t:10,r:10,b:30,l:40};
+  var iw = w-pad.l-pad.r, ih = h-pad.t-pad.b;
+  var vals = data.map(function(d){return d.totalR;});
+  var max = Math.max.apply(null, vals.concat([0.5])), min = Math.min.apply(null, vals.concat([-0.5]));
+  var rng = max-min || 1;
+  function y(v){ return pad.t + (1-(v-min)/rng)*ih; }
+  var zeroY = y(0);
+  var bw = iw/data.length*0.7, gap = iw/data.length*0.3;
+  var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" style="display:block">';
+  // y grid
+  for (var gi=0; gi<=4; gi++){
+    var gv = min + rng*gi/4, gy = y(gv);
+    svg += '<line x1="'+pad.l+'" y1="'+gy+'" x2="'+(pad.l+iw)+'" y2="'+gy+'" stroke="var(--border)" stroke-width="1"/>';
+    svg += '<text x="'+(pad.l-6)+'" y="'+(gy+3)+'" text-anchor="end" font-size="10" fill="var(--text3)">'+gv.toFixed(1)+'R</text>';
+  }
+  svg += '<line x1="'+pad.l+'" y1="'+zeroY+'" x2="'+(pad.l+iw)+'" y2="'+zeroY+'" stroke="var(--text3)" stroke-width="1"/>';
+  data.forEach(function(d,i){
+    var bx = pad.l + i*(iw/data.length) + gap/2;
+    var by = d.totalR>=0 ? y(d.totalR) : zeroY;
+    var bh = Math.abs(y(d.totalR)-zeroY);
+    var col = d.totalR>=0 ? 'var(--green)' : 'var(--red)';
+    svg += '<rect x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="2" fill="'+col+'"><title>'+d.date+' '+fmtR(d.totalR)+' ('+d.count+'筆)</title></rect>';
+    if (i % Math.max(1,Math.ceil(data.length/12)) === 0)
+      svg += '<text x="'+(bx+bw/2)+'" y="'+(h-8)+'" text-anchor="middle" font-size="9" fill="var(--text3)">'+d.date+'</text>';
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+//=================== App 狀態 ===================
+function blankForm() {
+  return { date: new Date().toISOString().slice(0,10), time:'', bal:'', notes:'',
+           direction:'', symbol:'', setup:'', news:'', emotion:'', shots:[] };
+}
+var state = { trades: loadData(), tab: 'dashboard', filter: 'all', checks: [false,false,false,false,false], form: blankForm(), editKey: null, detailKey: null, lightbox: null };
+
+function setState(patch) { for (var k in patch) state[k]=patch[k]; render(); }
+function commitTrades(trades) { state.trades = trades; saveData(trades); render(); }
+
+// 為每筆交易標記是否「紀律違規」：當日第 6 筆起、或當日連虧達 3 筆後的交易
+function annotateViolations(trades) {
+  var s = sortTrades(trades);
+  var byDate = {};
+  s.forEach(function(t){ if(!byDate[t.date])byDate[t.date]=[]; byDate[t.date].push(t); });
+  var out = {};
+  for (var d in byDate) {
+    var arr = byDate[d], lossStreak = 0;
+    arr.forEach(function(t, i){
+      var reasons = [];
+      if (i >= 5) reasons.push('單日第'+(i+1)+'筆');
+      if (lossStreak >= 3) reasons.push('連虧'+lossStreak+'後續做');
+      out[t.date+'#'+t.seq] = reasons;
+      if (t.r < 0) lossStreak++; else if (t.r > 0) lossStreak = 0;
+    });
+  }
+  return out;
+}
+function tradeKey(t){ return t.date+'#'+t.seq; }
+
+//=================== 各分頁 HTML ===================
+function statCard(lbl, val, sub, tone) {
+  return '<div class="card card-sm"><div class="stat-lbl">'+lbl+'</div><div class="stat-val '+(tone||'')+'">'+val+'</div>'+(sub?'<div class="stat-sub">'+sub+'</div>':'')+'</div>';
+}
+
+function viewDashboard() {
+  var t = state.trades, s = calcStats(t);
+  if (!t.length) return emptyState('尚無交易資料，請到「新增」頁面開始記錄。');
+  var sorted = sortTrades(t);
+  var eq = [{label:'起',balance:START_BALANCE}].concat(sorted.map(function(tr,i){return {label:'T'+(i+1),balance:tr.balance};}));
+  var daily = groupByDate(t).map(function(g){return {date:g.date.slice(5),totalR:g.totalR,count:g.trades.length};});
+  var prog = Math.max(0, Math.min(100, s.totalR/TARGET_R*100));
+  var beHit = s.winRate>=s.breakEvenWR;
+
+  var html = '<div class="stack">';
+  html += '<div class="grid g6">';
+  html += statCard('總盈虧', fmtR(s.totalR), fmtU(s.totalR*R_UNIT), s.totalR>0?'green':(s.totalR<0?'red':''));
+  html += statCard('勝率', fmtP(s.winRate), s.winCount+' 勝 '+s.lossCount+' 負 / '+s.totalTrades, beHit?'green':'red');
+  html += statCard('期望值/筆', fmtR(s.expectancy), '約 '+Math.round(s.expectancy*R_UNIT)+' U', s.expectancy>0?'green':(s.expectancy<0?'red':''));
+  html += statCard('盈虧比', s.payoff.toFixed(2), fmtR(s.avgWin)+' / '+fmtR(s.avgLoss), '');
+  html += statCard('最大回撤', '-'+s.maxDD.toFixed(2)+'R', '最低 '+Math.round(s.troughBalance).toLocaleString()+'U', 'red');
+  html += statCard('打平勝率', fmtP(s.breakEvenWR), beHit?'已超過':'差 '+((s.breakEvenWR-s.winRate)*100).toFixed(1)+'%', beHit?'green':'amber');
+  html += '</div>';
+
+  html += '<div class="card"><div class="row" style="margin-bottom:8px"><div style="color:var(--text2)">考試階段進度</div><div style="font-weight:500"><span class="'+(s.totalR>0?'green':'red')+'">'+fmtR(s.totalR)+'</span><span class="muted"> / +'+TARGET_R+'R</span></div></div><div class="bar-track"><div class="bar-fill" style="width:'+(s.totalR>0?prog:0)+'%;background:'+(s.totalR>0?'var(--green)':'var(--red)')+'"></div></div></div>';
+
+  html += '<div class="card"><h3>連貫資金曲線</h3>'+lineChart(eq, 1040, 300)+'</div>';
+  html += '<div class="card"><h3>分日表現</h3>'+barChart(daily, 1040, 260)+'</div>';
+
+  html += '<div class="grid g2">';
+  html += '<div class="card"><div class="stat-lbl">最長連敗</div><div class="stat-val red">'+s.maxLossStreak+' 筆</div><div class="stat-sub">超過 2 筆就該停手</div></div>';
+  html += '<div class="card"><div class="stat-lbl">最長連勝</div><div class="stat-val green">'+s.maxWinStreak+' 筆</div><div class="stat-sub">連勝後容易過度自信</div></div>';
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+
+function viewTrades() {
+  var t = state.trades;
+  var sorted = sortTrades(t).reverse();
+  var viol = annotateViolations(t);
+  var filtered = state.filter==='win' ? sorted.filter(function(x){return x.r>0;})
+    : state.filter==='loss' ? sorted.filter(function(x){return x.r<0;})
+    : state.filter==='viol' ? sorted.filter(function(x){return (viol[tradeKey(x)]||[]).length>0;})
+    : sorted;
+  var html = '<div class="stack">';
+  html += '<div class="row">';
+  html += '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+  [['all','全部'],['win','獲利'],['loss','虧損'],['viol','違規']].forEach(function(f){
+    html += '<button class="btn'+(state.filter===f[0]?' active':'')+'" onclick="setState({filter:\''+f[0]+'\'})">'+f[1]+'</button>';
+  });
+  html += '</div>';
+  html += '<div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn" onclick="doExport()">⬇ 匯出</button><button class="btn" onclick="doCopyClipboard()">📋 複製</button><button class="btn" onclick="doImportClick()">⬆ 匯入</button><button class="btn" onclick="doReset()">還原</button><button class="btn danger" onclick="doClear()">清空</button></div>';
+  html += '</div>';
+  html += '<input type="file" id="import-file" accept="application/json,.json" style="display:none" onchange="doImportFile(event)">';
+  html += '<div class="card" style="background:var(--blue-bg);border:none"><div style="font-size:12px;color:var(--text2);line-height:1.7">💡 <b>跨裝置同步</b>：收盤後按「匯出」下載 JSON（或「複製」到剪貼簿），丟到 Google Drive / iCloud。換裝置時打開本頁按「匯入」載入。匯出檔同時是安全備份。</div></div>';
+
+  // 桌面表格
+  html += '<div class="card hide-mobile" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>日期</th><th class="r">R</th><th class="r">餘額</th><th>標籤</th><th>備註</th><th style="width:96px"></th></tr></thead><tbody>';
+  if (!filtered.length) {
+    html += '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3)">無符合條件的交易</td></tr>';
+  } else {
+    filtered.forEach(function(x){
+      var rc = x.r>0?'green':(x.r<0?'red':'');
+      var vr = viol[tradeKey(x)]||[];
+      html += '<tr>';
+      html += '<td class="muted tnum">'+x.seq+'</td>';
+      html += '<td class="tnum" style="white-space:nowrap">'+x.date.slice(5)+(x.time?' <span class="muted" style="font-size:11px">'+x.time+'</span>':'')+'</td>';
+      html += '<td class="r tnum" style="font-weight:500"><span class="'+rc+'">'+fmtR(x.r)+'</span></td>';
+      html += '<td class="r tnum" style="color:var(--text2)">'+Math.round(x.balance).toLocaleString()+'</td>';
+      html += '<td style="font-size:11px">'+tradeTagsHtml(x, vr)+'</td>';
+      html += '<td style="color:var(--text2);font-size:12px;max-width:200px">'+(x.notes?esc(x.notes):'<span class="muted">—</span>')+'</td>';
+      html += '<td class="r" style="white-space:nowrap">'
+        + '<button class="btn iconbtn" title="截圖 '+((x.shots&&x.shots.length)||0)+' 張" onclick="openDetail(\''+x.date+'\','+x.seq+')">📷'+((x.shots&&x.shots.length)?'<span class="shot-count">'+x.shots.length+'</span>':'')+'</button>'
+        + '<button class="btn iconbtn" title="編輯" onclick="startEdit(\''+x.date+'\','+x.seq+')">✏️</button>'
+        + '<button class="btn iconbtn" title="複製這筆" onclick="copyTrade(\''+x.date+'\','+x.seq+')">⧉</button>'
+        + '<button class="btn iconbtn" title="刪除" onclick="doDelete(\''+x.date+'\','+x.seq+')">🗑</button></td>';
+      html += '</tr>';
+    });
+  }
+  html += '</tbody></table></div><div class="table-foot">顯示 '+filtered.length+' / '+t.length+' 筆</div></div>';
+
+  // 手機卡片
+  html += '<div class="show-mobile" style="display:none"><div class="stack" style="gap:10px">';
+  if (!filtered.length) {
+    html += '<div class="card" style="text-align:center;color:var(--text3);padding:32px">無符合條件的交易</div>';
+  } else {
+    filtered.forEach(function(x){
+      var rc = x.r>0?'green':(x.r<0?'red':'');
+      var vr = viol[tradeKey(x)]||[];
+      html += '<div class="card card-sm">';
+      html += '<div class="row" style="margin-bottom:6px"><div style="font-weight:500" class="tnum">'+x.date.slice(5)+' <span class="muted" style="font-size:12px">#'+x.seq+(x.time?' · '+x.time:'')+'</span></div><div class="tnum '+rc+'" style="font-size:18px;font-weight:600">'+fmtR(x.r)+'</div></div>';
+      var tagsH = tradeTagsHtml(x, vr);
+      if (tagsH) html += '<div style="margin-bottom:6px;font-size:11px">'+tagsH+'</div>';
+      if (x.notes) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">'+esc(x.notes)+'</div>';
+      html += '<div class="row"><span class="muted tnum" style="font-size:12px">餘額 '+Math.round(x.balance).toLocaleString()+'U</span><span style="display:flex;gap:4px">'
+        + '<button class="btn iconbtn" onclick="openDetail(\''+x.date+'\','+x.seq+')">📷'+((x.shots&&x.shots.length)?'<span class="shot-count">'+x.shots.length+'</span>':'')+'</button>'
+        + '<button class="btn iconbtn" onclick="startEdit(\''+x.date+'\','+x.seq+')">✏️</button>'
+        + '<button class="btn iconbtn" onclick="copyTrade(\''+x.date+'\','+x.seq+')">⧉</button>'
+        + '<button class="btn iconbtn" onclick="doDelete(\''+x.date+'\','+x.seq+')">🗑</button></span></div>';
+      html += '</div>';
+    });
+  }
+  html += '</div></div>';
+  // 明細彈窗 + 燈箱
+  html += detailModalHtml();
+  html += lightboxHtml();
+  html += '</div>';
+  return html;
+}
+
+// 交易明細彈窗（顯示該筆所有截圖）
+function detailModalHtml() {
+  if (!state.detailKey) return '';
+  var parts = state.detailKey.split('#');
+  var t = state.trades.filter(function(x){return x.date===parts[0] && String(x.seq)===parts[1];})[0];
+  if (!t) return '';
+  var shots = t.shots || [];
+  var rc = t.r>0?'green':(t.r<0?'red':'');
+  var html = '<div class="modal-overlay" onclick="closeDetail(event)"><div class="modal" onclick="event.stopPropagation()">';
+  html += '<div class="row" style="margin-bottom:12px"><div><div style="font-weight:600">'+t.date+' #'+t.seq+(t.time?' · '+t.time:'')+'</div><div class="'+rc+'" style="font-size:20px;font-weight:600">'+fmtR(t.r)+'</div></div><button class="btn" onclick="closeDetail()">關閉</button></div>';
+  if (t.notes) html += '<div style="font-size:13px;color:var(--text2);margin-bottom:12px">'+esc(t.notes)+'</div>';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">截圖（'+shots.length+' 張，點圖放大）</div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">';
+  if (!shots.length) {
+    html += '<span style="font-size:12px;color:var(--text3)">這筆還沒有截圖。下方可直接新增。</span>';
+  } else {
+    shots.forEach(function(id,i){
+      html += '<div class="shot-thumb lg" data-shot="'+id+'"><img id="thumb-'+id+'" alt="截圖" onclick="openLightbox(\''+id+'\','+i+')"><button type="button" class="shot-del" title="刪除此截圖" onclick="deleteDetailShot(\''+state.detailKey+'\',\''+id+'\')">×</button></div>';
+    });
+  }
+  html += '</div>';
+  html += '<label class="droparea" id="detail-drop"><input type="file" id="detail-shot-input" accept="image/*" multiple style="display:none" onchange="onDetailShotPick(event)"><div style="pointer-events:none">📷 加入截圖到這筆交易</div></label>';
+  html += '</div></div>';
+  return html;
+}
+function lightboxHtml() {
+  if (!state.lightbox) return '';
+  return '<div class="lightbox-overlay" onclick="closeLightbox()"><img id="lightbox-img" alt="放大截圖" onclick="event.stopPropagation()"><button class="lightbox-close" onclick="closeLightbox()">×</button></div>';
+}
+// 把一筆交易的標籤渲染成小 pill
+function tradeTagsHtml(x, violReasons) {
+  var parts = [];
+  if (x.direction) parts.push('<span class="tg">'+taxLabel('direction',x.direction)+'</span>');
+  if (x.symbol) parts.push('<span class="tg">'+taxLabel('symbol',x.symbol)+'</span>');
+  var sess = sessionFromTime(x.time);
+  if (sess) parts.push('<span class="tg">'+sessionLabel(sess)+'</span>');
+  if (x.setup) parts.push('<span class="tg tg-blue">'+taxLabel('setup',x.setup)+'</span>');
+  if (x.news && x.news!=='none') parts.push('<span class="tg">'+taxLabel('news',x.news)+'</span>');
+  if (x.emotion) parts.push('<span class="tg">'+taxLabel('emotion',x.emotion)+'</span>');
+  if (violReasons && violReasons.length) parts.push('<span class="tg tg-red" title="'+violReasons.join('、')+'">⚠ 違規</span>');
+  return parts.join(' ');
+}
+
+// 標籤選擇器：一組 pill 按鈕（單選），點了再點可取消
+function tagGroup(field) {
+  var def = TAX[field];
+  var cur = state.form[field] || '';
+  var html = '<div style="margin-bottom:14px"><div class="l" style="margin-bottom:6px">'+def.label+'</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+  def.opts.forEach(function(o){
+    var on = cur===o[0];
+    html += '<button type="button" class="tagbtn'+(on?' on':'')+'" onclick="pickTag(\''+field+'\',\''+o[0]+'\')">'+o[1]+'</button>';
+  });
+  html += '</div></div>';
+  return html;
+}
+function pickTag(field, val) {
+  captureForm();
+  state.form[field] = (state.form[field]===val) ? '' : val;
+  render();
+}
+function setFormDate(which) {
+  captureForm();
+  var d = new Date();
+  if (which==='yesterday') d.setDate(d.getDate()-1);
+  state.form.date = d.toISOString().slice(0,10);
+  render();
+}
+
+// 算出「這筆的前一筆餘額」：編輯時=被編輯筆的前一筆；新增時=該日期最後一筆(或更早日期最後一筆)
+function prevBalanceForForm() {
+  var sorted = sortTrades(state.trades);
+  if (state.editKey) {
+    var idx = -1;
+    for (var i=0;i<sorted.length;i++){ if(tradeKey(sorted[i])===state.editKey){ idx=i; break; } }
+    if (idx<=0) return START_BALANCE;
+    return sorted[idx-1].balance;
+  }
+  // 新增：找出 <= 選定日期的最後一筆
+  var d = state.form.date;
+  var prev = START_BALANCE;
+  for (var j=0;j<sorted.length;j++){ if(sorted[j].date<=d) prev=sorted[j].balance; else break; }
+  return prev;
+}
+function setBal(v) { captureForm(); state.form.bal = String(v); render(); }
+function onBalInput() {
+  // 即時更新 live-r 文字，不整頁重繪（避免輸入時失焦）
+  var el = document.getElementById('f-bal'); if(!el) return;
+  state.form.bal = el.value;
+  var prevBal = prevBalanceForForm();
+  var box = document.getElementById('live-r');
+  if (!box) return;
+  var v = parseFloat(el.value);
+  if (el.value==='' || isNaN(v)) { box.style.color='var(--text3)'; box.innerHTML='輸入餘額後自動計算這筆 R'; return; }
+  var r = (v - prevBal)/R_UNIT;
+  box.style.color = r>=0 ? 'var(--green)' : 'var(--red)';
+  box.innerHTML = '這筆 = <b>'+(r>=0?'+':'')+r.toFixed(2)+'R</b>（餘額變化 '+(r>=0?'+':'')+Math.round(v-prevBal).toLocaleString()+'U）';
+}
+
+function viewAdd() {
+  var f = state.form, t = state.trades;
+  var isEdit = !!state.editKey;
+  var todayTrades = t.filter(function(x){return x.date===f.date;});
+  var ls = 0;
+  for (var i=todayTrades.length-1;i>=0;i--){ if(todayTrades[i].r<0)ls++; else break; }
+  var cnt = todayTrades.length;
+  var dR = todayTrades.reduce(function(a,x){return a+x.r;},0);
+  var sess = sessionFromTime(f.time);
+  var golden = isGoldenTime(f.time);
+
+  var html = '<div class="stack">';
+  if (!isEdit && (ls>=2 || cnt>=5)) {
+    html += '<div class="alert amber"><div>⚠️</div><div><div style="font-weight:500;margin-bottom:4px">建議停手（此筆可能被標記為違規交易）</div><div style="font-size:12px">';
+    if (ls>=2) html += '· 今日已連續虧損 '+ls+' 筆，達到停手門檻<br>';
+    if (cnt>=5) html += '· 今日已交易 '+cnt+' 筆，達到單日上限';
+    html += '</div></div></div>';
+  }
+  html += '<div class="card"><div class="row" style="margin-bottom:12px"><h3 style="margin:0">'+(isEdit?'編輯交易':'新增交易紀錄')+'</h3>'+(isEdit?'<button class="btn" onclick="cancelEdit()">取消編輯</button>':'')+'</div>';
+
+  // 日期 + 快捷
+  html += '<div class="fld" style="margin-bottom:14px"><span class="l">日期</span><div style="display:flex;gap:8px;align-items:center"><input type="date" id="f-date" value="'+f.date+'" style="flex:1" onchange="captureForm();render()"><button type="button" class="btn" onclick="setFormDate(\'today\')">今天</button><button type="button" class="btn" onclick="setFormDate(\'yesterday\')">昨天</button></div></div>';
+
+  // 時間 + 盤口預覽
+  html += '<div class="fld" style="margin-bottom:14px"><span class="l">進場時間（UTC+8，選填）</span><input type="time" id="f-time" value="'+f.time+'" onchange="captureForm();render()"></div>';
+  if (f.time) {
+    html += '<div style="margin:-6px 0 14px;font-size:12px;color:var(--text2)">自動歸類盤口：<b>'+sessionLabel(sess)+'</b>'+(golden?' · <span class="green">✓ 21:35 後黃金時段</span>':'')+'</div>';
+  }
+
+  // 餘額輸入（R 自動由餘額差推算）+ 快速調整按鈕
+  var prevBal = prevBalanceForForm();
+  html += '<div class="fld" style="margin-bottom:6px"><span class="l">當前餘額 (U) *　<span style="color:var(--text3);font-weight:400">前一筆餘額 '+Math.round(prevBal).toLocaleString()+'U</span></span><input type="number" step="0.01" id="f-bal" value="'+(f.bal!==''&&f.bal!=null?f.bal:'')+'" placeholder="例如：'+Math.round(prevBal+R_UNIT)+'（賺1R）或 '+Math.round(prevBal-R_UNIT)+'（虧1R）" inputmode="decimal" oninput="onBalInput()"></div>';
+  // 即時 R 顯示
+  var liveR = (f.bal!==''&&f.bal!=null&&!isNaN(parseFloat(f.bal))) ? (parseFloat(f.bal)-prevBal)/R_UNIT : null;
+  html += '<div id="live-r" style="margin-bottom:10px;font-size:13px;'+(liveR===null?'color:var(--text3)':(liveR>=0?'color:var(--green)':'color:var(--red)'))+'">'+(liveR===null?'輸入餘額後自動計算這筆 R':'這筆 = <b>'+(liveR>=0?'+':'')+liveR.toFixed(2)+'R</b>（餘額變化 '+(liveR>=0?'+':'')+Math.round(parseFloat(f.bal)-prevBal).toLocaleString()+'U）')+'</div>';
+  // 快速填入：以前一筆餘額為基準 +/- 整數 R
+  html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">';
+  [['-1','-1R'],['-0.5','-0.5R'],['1','+1R'],['2','+2R'],['3','+3R']].forEach(function(q){
+    var tgt = Math.round((prevBal + parseFloat(q[0])*R_UNIT)*100)/100;
+    html += '<button type="button" class="tagbtn" onclick="setBal('+tgt+')">'+q[1]+'</button>';
+  });
+  html += '<span style="font-size:12px;color:var(--text3);align-self:center;margin-left:4px">1R='+R_UNIT+'U</span>';
+  html += '</div>';
+
+  // 標籤
+  html += tagGroup('direction');
+  html += tagGroup('symbol');
+  html += tagGroup('setup');
+  html += tagGroup('news');
+  html += tagGroup('emotion');
+
+  html += '<label class="fld" style="margin-bottom:16px"><span class="l">備註（選填）</span><textarea id="f-notes" rows="2" placeholder="例如：100EMA 阻力做空 / 利率會議掃損...">'+esc(f.notes)+'</textarea></label>';
+
+  // 截圖上傳區
+  html += '<div class="fld" style="margin-bottom:16px"><span class="l">進場截圖（可多張：進場 / 出場 / 不同時間框架）</span>';
+  html += '<div id="shot-strip" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">'+formShotsHtml()+'</div>';
+  html += '<label class="droparea" id="drop-area"><input type="file" id="shot-input" accept="image/*" multiple style="display:none" onchange="onShotPick(event)"><div style="pointer-events:none">📷 點此選擇圖片，或把圖片拖曳到這裡<div style="font-size:11px;color:var(--text3);margin-top:4px">自動壓縮，存在本機 IndexedDB</div></div></label>';
+  html += '</div>';
+
+  html += '<button class="btn primary" onclick="doAdd()">'+(isEdit?'儲存修改':'+ 新增交易')+'</button>';
+  html += '</div>';
+
+  if (!isEdit && todayTrades.length) {
+    html += '<div class="card"><div class="stat-lbl">'+f.date+' 今日狀態</div><div class="grid g3" style="margin-top:8px">';
+    html += '<div><div class="muted" style="font-size:12px">筆數</div><div style="font-size:16px;font-weight:500">'+cnt+' / 5</div></div>';
+    html += '<div><div class="muted" style="font-size:12px">當日盈虧</div><div style="font-size:16px;font-weight:500" class="'+(dR>=0?'green':'red')+'">'+fmtR(dR)+'</div></div>';
+    html += '<div><div class="muted" style="font-size:12px">當前連敗</div><div style="font-size:16px;font-weight:500" class="'+(ls>=2?'red':'')+'">'+ls+'</div></div>';
+    html += '</div></div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// 表單目前已選截圖的縮圖（縮圖內容由 idb 非同步載入）
+function formShotsHtml() {
+  var ids = state.form.shots || [];
+  if (!ids.length) return '<span style="font-size:12px;color:var(--text3)">尚未加入截圖</span>';
+  return ids.map(function(id){
+    return '<div class="shot-thumb" data-shot="'+id+'"><img id="thumb-'+id+'" alt="截圖"><button type="button" class="shot-del" title="移除" onclick="removeFormShot(\''+id+'\')">×</button></div>';
+  }).join('');
+}
+// 載入所有縮圖到 <img>（render 後呼叫）
+function hydrateThumbs() {
+  var imgs = document.querySelectorAll('img[id^="thumb-"]');
+  imgs.forEach(function(el){
+    var id = el.id.replace('thumb-','');
+    idbGet(id).then(function(d){ if(d) el.src=d; }).catch(function(){});
+  });
+  // 明細燈箱大圖
+  var lb = document.getElementById('lightbox-img');
+  if (lb && state.lightbox) idbGet(state.lightbox.id).then(function(d){ if(d) lb.src=d; });
+}
+function onShotPick(ev) {
+  var files = ev.target.files;
+  if (!files || !files.length) return;
+  captureForm();
+  processShotFiles(files);
+  ev.target.value='';
+}
+function processShotFiles(files) {
+  var arr = Array.prototype.slice.call(files).filter(function(f){return f.type.indexOf('image/')===0;});
+  if (!arr.length) return;
+  var queue = arr.map(function(file){
+    var id = newShotId();
+    return compressImage(file, 1600, 0.82)
+      .then(function(dataUrl){ return idbPut(id, dataUrl); })
+      .then(function(){ state.form.shots.push(id); })
+      .catch(function(err){ console.warn('截圖處理失敗', err); });
+  });
+  Promise.all(queue).then(function(){ render(); });
+}
+function removeFormShot(id) {
+  captureForm();
+  state.form.shots = (state.form.shots||[]).filter(function(x){return x!==id;});
+  idbDel(id); // 從 IndexedDB 一併刪除（尚未綁到交易，安全）
+  render();
+}
+// 明細彈窗
+function openDetail(date, seq) { state.detailKey = date+'#'+seq; render(); }
+function closeDetail(ev) { if(ev && ev.target && !ev.target.classList.contains('modal-overlay')) return; state.detailKey=null; render(); }
+function onDetailShotPick(ev) {
+  var files = ev.target.files; if(!files||!files.length) return;
+  var key = state.detailKey;
+  var arr = Array.prototype.slice.call(files).filter(function(f){return f.type.indexOf('image/')===0;});
+  var newIds = [];
+  Promise.all(arr.map(function(file){
+    var id=newShotId();
+    return compressImage(file,1600,0.82).then(function(d){return idbPut(id,d);}).then(function(){newIds.push(id);}).catch(function(e){console.warn(e);});
+  })).then(function(){
+    var updated = state.trades.map(function(x){
+      if (tradeKey(x)===key){ var c={};for(var k in x)c[k]=x[k]; c.shots=(c.shots||[]).concat(newIds); return c; }
+      return x;
+    });
+    commitTrades(updated);
+  });
+  ev.target.value='';
+}
+function deleteDetailShot(key, id) {
+  if(!confirm('刪除這張截圖？')) return;
+  idbDel(id);
+  var updated = state.trades.map(function(x){
+    if (tradeKey(x)===key){ var c={};for(var k in x)c[k]=x[k]; c.shots=(c.shots||[]).filter(function(s){return s!==id;}); return c; }
+    return x;
+  });
+  commitTrades(updated);
+}
+// 燈箱
+function openLightbox(id, idx) { state.lightbox={id:id,idx:idx}; render(); }
+function closeLightbox() { state.lightbox=null; render(); }
+
+// 依某個維度分組統計，回傳排序後的列：{key,label,n,winRate,avgR,totalR}
+function breakdownBy(trades, keyFn, labelFn) {
+  var groups = {};
+  trades.forEach(function(t){
+    var k = keyFn(t);
+    if (k===null || k===undefined || k==='') return;
+    if (!groups[k]) groups[k] = { key:k, n:0, wins:0, totalR:0 };
+    groups[k].n++; groups[k].totalR += t.r; if (t.r>0) groups[k].wins++;
+  });
+  var rows = [];
+  for (var k in groups) {
+    var g = groups[k];
+    rows.push({ key:k, label: labelFn(k), n:g.n, winRate:g.wins/g.n, avgR:g.totalR/g.n, totalR:g.totalR });
+  }
+  rows.sort(function(a,b){ return b.avgR - a.avgR; });
+  return rows;
+}
+// 把分組結果畫成表格（含勝率、平均R、總R、筆數），平均R 用顏色標示
+function breakdownTable(rows, firstColLabel) {
+  if (!rows.length) return '<p style="font-size:12px;color:var(--text3)">尚無足夠標籤資料（在「新增/編輯」幫交易加標籤後就會出現）</p>';
+  var html = '<div style="overflow-x:auto"><table><thead><tr><th>'+firstColLabel+'</th><th class="r">筆數</th><th class="r">勝率</th><th class="r">平均R</th><th class="r">總R</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var rc = r.avgR>0?'green':(r.avgR<0?'red':'');
+    html += '<tr><td style="font-weight:500">'+esc(r.label)+'</td><td class="r tnum muted">'+r.n+'</td><td class="r tnum">'+fmtP(r.winRate)+'</td><td class="r tnum '+rc+'" style="font-weight:600">'+fmtR(r.avgR)+'</td><td class="r tnum '+(r.totalR>0?'green':(r.totalR<0?'red':''))+'">'+fmtR(r.totalR)+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function viewAnalysis() {
+  var t = state.trades, s = calcStats(t);
+  if (!t.length) return emptyState('尚無資料可分析。');
+  var sorted = sortTrades(t);
+
+  var violationDays = groupByDate(t).filter(function(d){
+    if (d.trades.length>=6) return true;
+    var ms=0,c=0; d.trades.forEach(function(x){ if(x.r<0){c++;if(c>ms)ms=c;}else c=0; }); return ms>=3;
+  });
+  var vset = {}; violationDays.forEach(function(d){vset[d.date]=1;});
+  var cleanStats = calcStats(sorted.filter(function(x){return !vset[x.date];}));
+
+  // 連虧後勝率
+  var buckets = {'0':{c:0,w:0},'1':{c:0,w:0},'2':{c:0,w:0},'3':{c:0,w:0},'4+':{c:0,w:0}};
+  var streak=0;
+  sorted.forEach(function(x){ var b=streak>=4?'4+':String(streak); buckets[b].c++; if(x.r>0)buckets[b].w++; if(x.r<0)streak++; else if(x.r>0)streak=0; });
+
+  var bigWins = sorted.filter(function(x){return x.r>=2;});
+  var bigLosses = sorted.filter(function(x){return x.r<=-1.2;});
+
+  var html = '<div class="stack">';
+  // 違規日
+  html += '<div class="card"><h3>⚠ 違規日對比分析</h3><p style="font-size:12px;color:var(--text2);margin-bottom:12px">排除「單日 6+ 筆」或「當日連虧 3+ 筆」的交易日</p>';
+  html += '<div class="grid g2">';
+  html += '<div style="padding:12px;background:var(--bg);border-radius:6px"><div style="font-size:12px;color:var(--text2)">原始（含違規日）</div><div class="stat-val '+(s.totalR>0?'green':'red')+'" style="margin-top:4px">'+fmtR(s.totalR)+'</div><div style="font-size:12px;color:var(--text2);margin-top:4px">期望值 '+fmtR(s.expectancy)+' / 筆</div></div>';
+  html += '<div style="padding:12px;background:var(--green-bg);border-radius:6px;border:1px solid var(--green)"><div style="font-size:12px" class="green">排除違規日後</div><div class="stat-val '+(cleanStats.totalR>0?'green':'red')+'" style="margin-top:4px">'+fmtR(cleanStats.totalR)+'</div><div style="font-size:12px;margin-top:4px" class="green">期望值 '+fmtR(cleanStats.expectancy)+' / 筆</div></div>';
+  html += '</div>';
+  if (violationDays.length) {
+    html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text2);margin-bottom:8px">違規日清單：</div>';
+    violationDays.forEach(function(d){
+      html += '<div class="row" style="background:var(--red-bg);border-radius:4px;padding:6px 12px;margin-bottom:6px"><span style="font-weight:500">'+d.date+'</span><span class="muted" style="font-size:12px">'+d.trades.length+' 筆</span><span class="tnum '+(d.totalR>=0?'green':'red')+'" style="font-weight:500">'+fmtR(d.totalR)+'</span></div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // ===== 標籤績效分析（核心：靠什麼在賺錢）=====
+  var setupRows = breakdownBy(sorted, function(t){return t.setup;}, function(k){return taxLabel('setup',k);});
+  var sessionRows = breakdownBy(sorted, function(t){return sessionFromTime(t.time);}, function(k){return sessionLabel(k);});
+  var timeRows = breakdownBy(sorted, function(t){return timeBucket(t.time);}, function(k){return k;});
+  timeRows.sort(function(a,b){ return a.key<b.key?-1:1; });
+  var emotionRows = breakdownBy(sorted, function(t){return t.emotion;}, function(k){return taxLabel('emotion',k);});
+  var symbolRows = breakdownBy(sorted, function(t){return t.symbol;}, function(k){return taxLabel('symbol',k);});
+  var dirRows = breakdownBy(sorted, function(t){return t.direction;}, function(k){return taxLabel('direction',k);});
+  var taggedCount = sorted.filter(function(t){return t.setup||t.direction||t.symbol||t.emotion;}).length;
+
+  html += '<div class="card"><h3>🎯 Setup 績效（你到底靠什麼在賺錢）</h3><p style="font-size:12px;color:var(--text2);margin-bottom:12px">依平均 R 排序。把虧損的 Setup 砍掉、加碼賺錢的 Setup，是提升期望值最快的路。</p>'+breakdownTable(setupRows,'Setup')+'</div>';
+  html += '<div class="grid g2">';
+  html += '<div class="card"><h3>⏰ 時段績效</h3><p style="font-size:12px;color:var(--text2);margin-bottom:10px">驗證你的「21:35 後較好」假設</p>'+breakdownTable(timeRows,'時段(UTC+8)')+'</div>';
+  html += '<div class="card"><h3>🌏 盤口績效</h3><p style="font-size:12px;color:var(--text2);margin-bottom:10px">依進場時間自動歸類</p>'+breakdownTable(sessionRows,'盤口')+'</div>';
+  html += '</div>';
+  html += '<div class="card"><h3>😊 情緒績效</h3><p style="font-size:12px;color:var(--text2);margin-bottom:12px">很多人最後發現：不是策略有問題，是情緒有問題。</p>'+breakdownTable(emotionRows,'情緒')+'</div>';
+  html += '<div class="grid g2">';
+  html += '<div class="card"><h3>方向績效</h3>'+breakdownTable(dirRows,'方向')+'</div>';
+  html += '<div class="card"><h3>商品績效</h3>'+breakdownTable(symbolRows,'商品')+'</div>';
+  html += '</div>';
+  if (taggedCount < sorted.length) {
+    html += '<div class="card" style="background:var(--amber-bg);border:none"><div style="font-size:12px;color:var(--text2)">📌 目前 '+sorted.length+' 筆中有 '+(sorted.length-taggedCount)+' 筆尚未加標籤（預設歷史資料沒標籤）。新增或編輯交易時補上標籤，表格會越來越準。</div></div>';
+  }
+
+  // ===== 違規交易逐筆對比 =====
+  var vmap = annotateViolations(t);
+  var normalT = [], violT = [];
+  sorted.forEach(function(x){ if ((vmap[tradeKey(x)]||[]).length) violT.push(x); else normalT.push(x); });
+  var nStat = calcStats(normalT), vStat = calcStats(violT);
+  html += '<div class="card"><h3>🚦 違規交易 vs 正常交易（逐筆）</h3><p style="font-size:12px;color:var(--text2);margin-bottom:12px">違規＝單日第 6 筆起、或當日連虧 3 筆後仍續做。</p>';
+  html += '<div class="grid g2">';
+  html += '<div style="padding:12px;background:var(--green-bg);border-radius:6px;border:1px solid var(--green)"><div style="font-size:12px" class="green">正常交易 ('+normalT.length+' 筆)</div><div class="stat-val '+(nStat.expectancy>=0?'green':'red')+'" style="margin-top:4px">'+(normalT.length?fmtR(nStat.expectancy):'—')+'<span style="font-size:13px;font-weight:400"> /筆</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">勝率 '+(normalT.length?fmtP(nStat.winRate):'—')+' · 總 '+fmtR(nStat.totalR)+'</div></div>';
+  html += '<div style="padding:12px;background:var(--red-bg);border-radius:6px;border:1px solid var(--red)"><div style="font-size:12px" class="red">違規交易 ('+violT.length+' 筆)</div><div class="stat-val '+(vStat.expectancy>=0?'green':'red')+'" style="margin-top:4px">'+(violT.length?fmtR(vStat.expectancy):'—')+'<span style="font-size:13px;font-weight:400"> /筆</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">勝率 '+(violT.length?fmtP(vStat.winRate):'—')+' · 總 '+fmtR(vStat.totalR)+'</div></div>';
+  html += '</div>';
+  if (violT.length && normalT.length) {
+    var diff = nStat.expectancy - vStat.expectancy;
+    html += '<div style="margin-top:12px;font-size:13px;color:var(--text)">差距：正常交易每筆比違規交易多 <b class="green">'+diff.toFixed(2)+'R</b>，違規交易合計拖累 <b class="red">'+fmtR(vStat.totalR)+'</b>。</div>';
+  }
+  html += '</div>';
+
+  // 連虧後勝率
+  html += '<div class="card"><h3>連虧後勝率分析</h3><p style="font-size:12px;color:var(--text2);margin-bottom:12px">若連虧後勝率持續下降，代表「連虧後停手」是有效規則</p>';
+  ['0','1','2','3','4+'].forEach(function(k){
+    var v=buckets[k], wr=v.c>0?v.w/v.c:0;
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:90px;font-size:12px;color:var(--text2)">連虧 '+k+' 後</div><div style="flex:1;height:24px;background:var(--bg);border-radius:4px;position:relative;overflow:hidden"><div style="height:100%;background:var(--blue);width:'+(wr*100)+'%"></div><div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 8px;font-size:12px"><span style="font-weight:500">'+(v.c>0?fmtP(wr):'—')+'</span><span class="muted" style="margin-left:auto">'+v.w+'/'+v.c+'</span></div></div></div>';
+  });
+  html += '</div>';
+
+  // 大贏大虧
+  html += '<div class="grid g2">';
+  html += '<div class="card"><h3 class="green">大贏（≥ 2R）</h3><div class="stat-val">'+bigWins.length+' 筆</div><div style="font-size:12px;color:var(--text2);margin:8px 0">佔 '+fmtP(bigWins.length/sorted.length)+'，貢獻 '+fmtR(bigWins.reduce(function(a,x){return a+x.r;},0))+'</div><div style="max-height:160px;overflow-y:auto">';
+  bigWins.slice().reverse().forEach(function(x){ html += '<div class="row" style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">'+x.date.slice(5)+' #'+x.seq+'</span><span class="green tnum" style="font-weight:500">'+fmtR(x.r)+'</span></div>'; });
+  html += '</div></div>';
+  html += '<div class="card"><h3 class="red">大虧（≤ -1.2R）</h3><div class="stat-val">'+bigLosses.length+' 筆</div><div style="font-size:12px;color:var(--text2);margin:8px 0">超過標準 1R 停損的次數</div><div style="max-height:160px;overflow-y:auto">';
+  bigLosses.slice().reverse().forEach(function(x){ html += '<div class="row" style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">'+x.date.slice(5)+' #'+x.seq+'</span><span class="red tnum" style="font-weight:500">'+fmtR(x.r)+'</span></div>'; });
+  html += '</div></div>';
+  html += '</div>';
+
+  // 達標路徑
+  html += '<div class="alert blue"><div style="width:100%"><h3 style="color:var(--blue)">達標路徑試算</h3><div style="font-size:14px;color:var(--text)">';
+  html += '<div>還需 <b>'+(TARGET_R-s.totalR).toFixed(2)+'R</b> 達到考試目標</div>';
+  if (s.expectancy>0) html += '<div>按目前期望值 '+fmtR(s.expectancy)+'/筆，約需 <b>'+Math.ceil((TARGET_R-s.totalR)/s.expectancy)+'</b> 筆達成</div>';
+  else html += '<div>目前期望值為負，需先把勝率提升到 <b>'+fmtP(s.breakEvenWR+0.02)+'</b> 以上</div>';
+  if (cleanStats.expectancy>0 && Math.abs(cleanStats.expectancy-s.expectancy)>0.01) html += '<div style="font-size:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">提示：若能避免違規日，期望值會提升到 '+fmtR(cleanStats.expectancy)+'/筆，約 '+Math.ceil((TARGET_R-s.totalR)/cleanStats.expectancy)+' 筆達成</div>';
+  html += '</div></div></div>';
+  html += '</div>';
+  return html;
+}
+
+function viewChecklist() {
+  var items = [
+    '現在時間在 UTC+8 21:35 之後（前面紀錄的時段發現）',
+    '進場有明確的方向訊號（均線發散 / 順勢，不是逆勢猜頂底）',
+    '進場位置貼近關鍵結構（不是追在行情中間）',
+    '均線（EMA 20/50/100/200）狀態符合方向',
+    '出現完整吞沒形態（後 K 完全包住前 K + 量能放大）'
+  ];
+  var allOn = state.checks.every(function(c){return c;});
+  var nOff = state.checks.filter(function(c){return !c;}).length;
+  var html = '<div class="stack">';
+  html += '<div class="card"><div class="row" style="margin-bottom:12px"><div><h3 style="margin-bottom:2px">下單前最後確認</h3><span style="font-size:12px;color:var(--text2)">五題全部「是」才能進場</span></div>'+(state.checks.some(function(c){return c;})?'<button class="btn" onclick="resetChecks()">重置</button>':'')+'</div>';
+  items.forEach(function(it,i){
+    html += '<label class="check-item'+(state.checks[i]?' on':'')+'" style="margin-bottom:8px"><input type="checkbox" '+(state.checks[i]?'checked':'')+' onclick="toggleCheck('+i+')"><span>'+it+'</span></label>';
+  });
+  html += '<div style="margin-top:16px;padding:16px;border-radius:6px;text-align:center;'+(allOn?'background:var(--green-bg);border:1px solid var(--green)':'background:var(--bg);border:1px solid var(--border)')+'">';
+  html += allOn ? '<span class="green" style="font-weight:500">✓ 條件齊全，可以進場</span>' : '<span style="color:var(--text2)">還差 '+nOff+' 項條件</span>';
+  html += '</div></div>';
+
+  html += '<div class="card"><h3>紀律硬規則</h3>';
+  var rules = [
+    ['1','連虧 2 筆，當天剩餘時間停手','不是 3 筆。連虧 2 筆通常代表當下行情跟你的系統不對盤'],
+    ['2','單日上限 5 筆','第 6 筆機會多好都不做。前幾份紀錄的爆量日都是 6+ 筆'],
+    ['3','停損後 30 分鐘內不做同方向','避免重複進場變相加倉'],
+    ['4','行情走成單邊趨勢時，不逆勢做回歸','改順勢做破位回測，或休息到明天']
+  ];
+  rules.forEach(function(r){
+    html += '<div class="rule" style="margin-bottom:12px"><div class="num">'+r[0]+'</div><div><div style="font-weight:500">'+r[1]+'</div><div style="font-size:12px;color:var(--text2);margin-top:2px">'+r[2]+'</div></div></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function emptyState(msg) {
+  return '<div class="card" style="padding:48px;text-align:center"><div style="font-size:32px;margin-bottom:12px">📊</div><p style="color:var(--text2)">'+msg+'</p></div>';
+}
+
+//=================== 操作 ===================
+function captureForm() {
+  var d=document.getElementById('f-date'), tm=document.getElementById('f-time'), b=document.getElementById('f-bal'), n=document.getElementById('f-notes');
+  if(d) state.form.date=d.value;
+  if(tm) state.form.time=tm.value;
+  if(b) state.form.bal=b.value;
+  if(n) state.form.notes=n.value;
+}
+function doAdd() {
+  captureForm();
+  var f = state.form;
+  var bal = parseFloat(f.bal);
+  if (isNaN(bal)) { alert('請輸入有效的餘額數字'); return; }
+  bal = Math.round(bal*100)/100;
+  var tagFields = { time:f.time, notes:f.notes, shots:(f.shots||[]).slice(),
+    direction:f.direction, symbol:f.symbol, setup:f.setup, news:f.news, emotion:f.emotion };
+
+  if (state.editKey) {
+    // 編輯：直接更新這筆的 balance；recalc 會重算這筆與後續筆的 R
+    var updated = state.trades.map(function(x){
+      if (tradeKey(x) === state.editKey) {
+        var c = {}; for (var k in x) c[k]=x[k];
+        c.balance = bal; for (var k2 in tagFields) c[k2]=tagFields[k2];
+        return c;
+      }
+      return x;
+    });
+    state.editKey = null;
+    state.form = blankForm();
+    commitTrades(recalc(updated));
+    state.tab = 'trades'; render();
+    return;
+  }
+
+  // 新增：直接存 balance
+  var same = state.trades.filter(function(x){return x.date===f.date;});
+  var nt = {date:f.date, seq:same.length+1, balance:bal, r:0};
+  for (var k3 in tagFields) nt[k3]=tagFields[k3];
+  var updated2 = recalc(state.trades.concat([nt]));
+  state.form.bal=''; state.form.notes=''; state.form.time=''; state.form.emotion=''; state.form.shots=[];
+  commitTrades(updated2);
+}
+function startEdit(date, seq) {
+  var t = state.trades.filter(function(x){return x.date===date && x.seq===seq;})[0];
+  if (!t) return;
+  state.editKey = tradeKey(t);
+  state.form = { date:t.date, time:t.time||'', bal:String(Math.round(t.balance*100)/100), notes:t.notes||'',
+    direction:t.direction||'', symbol:t.symbol||'', setup:t.setup||'', news:t.news||'', emotion:t.emotion||'', shots:(t.shots||[]).slice() };
+  state.detailKey = null;
+  state.tab = 'add'; render();
+}
+function copyTrade(date, seq) {
+  var t = state.trades.filter(function(x){return x.date===date && x.seq===seq;})[0];
+  if (!t) return;
+  state.editKey = null;
+  state.form = { date: new Date().toISOString().slice(0,10), time:t.time||'', bal:'', notes:'',
+    direction:t.direction||'', symbol:t.symbol||'', setup:t.setup||'', news:t.news||'', emotion:'', shots:[] };
+  state.tab = 'add'; render();
+}
+function cancelEdit() { state.editKey = null; state.form = blankForm(); render(); }
+function doDelete(date, seq) {
+  if (!confirm('確定要刪除這筆交易嗎？（含其截圖）')) return;
+  var target = state.trades.filter(function(x){return x.date===date && x.seq===seq;})[0];
+  if (target && target.shots) target.shots.forEach(function(id){ idbDel(id); });
+  var remaining = state.trades.filter(function(x){return !(x.date===date && x.seq===seq);});
+  var g={}, order=[];
+  remaining.forEach(function(x){ if(!g[x.date]){g[x.date]=[];order.push(x.date);} g[x.date].push(x); });
+  var renum=[];
+  order.forEach(function(dt){ g[dt].sort(function(a,b){return a.seq-b.seq;}).forEach(function(x,i){ var c={};for(var k in x)c[k]=x[k]; c.seq=i+1; renum.push(c); }); });
+  state.detailKey = null;
+  commitTrades(recalc(renum));
+}
+function doReset() { if(!confirm('確定要還原成預設的 50 筆紀錄嗎？目前的編輯會消失。'))return; commitTrades(DEFAULT_TRADES.slice()); }
+function doClear() { if(!confirm('確定要清空所有交易紀錄嗎？這個動作無法復原。'))return; commitTrades([]); }
+
+function buildPayload(images) {
+  return { app:'lucid-trading-journal', version:3, exportedAt:new Date().toISOString(),
+    lastModified: localStorage.getItem(LS_KEY+'_mtime') || new Date().toISOString(),
+    rUnit:R_UNIT, startBalance:START_BALANCE, targetR:TARGET_R, trades:state.trades,
+    images: images || {} };
+}
+// 收集所有截圖 dataURL（供匯出時內嵌，達成跨裝置同步）
+function collectImages() {
+  var ids = [];
+  state.trades.forEach(function(t){ (t.shots||[]).forEach(function(id){ ids.push(id); }); });
+  if (!ids.length) return Promise.resolve({});
+  var images = {};
+  return Promise.all(ids.map(function(id){
+    return idbGet(id).then(function(d){ if(d) images[id]=d; }).catch(function(){});
+  })).then(function(){ return images; });
+}
+function doExport() {
+  var hasShots = state.trades.some(function(t){return (t.shots||[]).length;});
+  collectImages().then(function(images){
+    var json = JSON.stringify(buildPayload(images));
+    var blob = new Blob([json], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var stamp = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = 'lucid-journal-'+stamp+'.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+}
+function doCopyClipboard() {
+  // 剪貼簿版本不含圖片（避免過大），僅交易資料
+  var json = JSON.stringify(buildPayload({}));
+  function done(){ alert('已複製交易資料到剪貼簿（'+state.trades.length+' 筆，不含截圖）。\n截圖請改用「匯出」下載 JSON 檔保存。'); }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(json).then(done, function(){ promptCopy(json); });
+  } else { promptCopy(json); }
+}
+function promptCopy(json) { window.prompt('手動複製以下備份內容（Ctrl/Cmd+C）：', json); }
+function doImportClick() { var el = document.getElementById('import-file'); if(el) el.click(); }
+function doImportFile(ev) {
+  var file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      var trades = Array.isArray(data) ? data : data.trades;
+      if (!Array.isArray(trades)) throw new Error('格式不符');
+      var images = (data && data.images) || {};
+      var clean = trades.filter(function(t){ return t && typeof t.date==='string' && typeof t.r==='number'; })
+        .map(function(t){ return { date:t.date, seq:t.seq||1, time:t.time||'', r:t.r, balance:t.balance||0, notes:t.notes||'',
+          direction:t.direction||'', symbol:t.symbol||'', setup:t.setup||'', news:t.news||'', emotion:t.emotion||'', shots: Array.isArray(t.shots)?t.shots:[] }; });
+      if (!clean.length) throw new Error('沒有有效的交易資料');
+      var g={}, order=[];
+      sortTrades(clean).forEach(function(x){ if(!g[x.date]){g[x.date]=[];order.push(x.date);} g[x.date].push(x); });
+      var renum=[];
+      order.forEach(function(dt){ g[dt].forEach(function(x,i){ var c={};for(var k in x)c[k]=x[k]; c.seq=i+1; renum.push(c); }); });
+      var imgCount = Object.keys(images).length;
+      if (!confirm('將以匯入的 '+clean.length+' 筆資料'+(imgCount?'（含 '+imgCount+' 張截圖）':'')+'「取代」目前的 '+state.trades.length+' 筆。確定？\n\n（建議先按「匯出」存一份目前的資料）')) { ev.target.value=''; return; }
+      // 先還原圖片到 IndexedDB，再寫入交易
+      var imgIds = Object.keys(images);
+      Promise.all(imgIds.map(function(id){ return idbPut(id, images[id]).catch(function(){}); })).then(function(){
+        commitTrades(recalc(renum));
+        alert('匯入成功，共 '+clean.length+' 筆'+(imgCount?'、'+imgCount+' 張截圖':'')+'。');
+      });
+    } catch(err) {
+      alert('匯入失敗：'+err.message+'\n請確認選的是本工具匯出的 JSON 檔。');
+    }
+    ev.target.value='';
+  };
+  reader.readAsText(file);
+}
+function toggleCheck(i) { state.checks[i]=!state.checks[i]; render(); }
+function resetChecks() { state.checks=[false,false,false,false,false]; render(); }
+
+//=================== 渲染 ===================
+function render() {
+  var s = calcStats(state.trades);
+  var tabs = [['dashboard','儀表板'],['trades','明細'],['add','新增'],['analysis','分析'],['checklist','Checklist']];
+  var nav = tabs.map(function(t){ return '<button class="'+(state.tab===t[0]?'active':'')+'" onclick="changeTab(\''+t[0]+'\')">'+t[1]+'</button>'; }).join('');
+
+  var body = state.tab==='dashboard'?viewDashboard():state.tab==='trades'?viewTrades():state.tab==='add'?viewAdd():state.tab==='analysis'?viewAnalysis():viewChecklist();
+
+  var modeLabel = storageMode==='localStorage' ? '資料儲存於瀏覽器 localStorage（已含 cookie 摘要備援）' : storageMode==='cookie-only' ? '⚠ 此瀏覽器封鎖了 localStorage，目前僅 cookie 備援（容量有限）' : '資料儲存於本機';
+
+  var html = '<header><div class="wrap"><div class="head-row"><div><div class="head-title">Lucid Trading Journal</div><div class="head-sub">1R = 200U · 目標 +15R · 起始 50,000U</div></div><div class="head-stats"><div class="head-stat"><div class="lbl">當前餘額</div><div class="val tnum">'+Math.round(s.currentBalance).toLocaleString()+'<span style="font-size:12px;color:var(--text2);margin-left:4px">U</span></div></div><div class="head-stat"><div class="lbl">總盈虧</div><div class="val tnum '+(s.totalR>0?'green':(s.totalR<0?'red':''))+'">'+fmtR(s.totalR)+'</div></div></div></div><nav>'+nav+'</nav></div></header>';
+  html += '<main><div class="wrap">'+body+'</div></main>';
+  var installBtn = window.__canInstall ? ' · <a href="#" onclick="doInstall();return false;" style="color:var(--blue)">安裝為應用程式</a>' : '';
+  html += '<footer>'+modeLabel+installBtn+'</footer>';
+
+  document.getElementById('app').innerHTML = html;
+  hydrateThumbs();
+  setupDropAreas();
+}
+// 拖曳上傳：表單區與明細區
+function setupDropAreas() {
+  ['drop-area','detail-drop'].forEach(function(zoneId){
+    var zone = document.getElementById(zoneId);
+    if (!zone) return;
+    zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.classList.add('dragging'); });
+    zone.addEventListener('dragleave', function(){ zone.classList.remove('dragging'); });
+    zone.addEventListener('drop', function(e){
+      e.preventDefault(); zone.classList.remove('dragging');
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      if (zoneId==='drop-area') { captureForm(); processShotFiles(files); }
+      else { onDetailShotPick({ target:{ files:files, value:'' } }); }
+    });
+  });
+}
+function changeTab(tab) { if(state.tab==='add') captureForm(); state.tab=tab; state.detailKey=null; state.lightbox=null; render(); }
+
+//=================== PWA：可安裝為應用程式（需透過網址開啟，file:// 不支援）===================
+(function setupPWA(){
+  try {
+    var manifest = {
+      name: 'Lucid Trading Journal', short_name: 'Lucid Journal',
+      start_url: '.', display: 'standalone',
+      background_color: '#0f172a', theme_color: '#2563eb',
+      icons: [{
+        src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="512" height="512" rx="96" fill="#2563eb"/><text x="256" y="340" font-size="280" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="bold">L</text></svg>'),
+        sizes: '512x512', type: 'image/svg+xml', purpose: 'any'
+      }]
+    };
+    var blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+    var link = document.createElement('link');
+    link.rel = 'manifest'; link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  } catch(e){}
+})();
+var __deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); __deferredPrompt = e; window.__canInstall = true; render(); });
+function doInstall(){ if(__deferredPrompt){ __deferredPrompt.prompt(); __deferredPrompt = null; window.__canInstall = false; } }
+window.addEventListener('appinstalled', function(){ window.__canInstall = false; render(); });
+
+render();
+</script>
+</body>
+</html>
