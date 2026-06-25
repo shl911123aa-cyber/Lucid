@@ -510,7 +510,7 @@ function blankForm() {
   return { date: new Date().toISOString().slice(0,10), time:'', bal:'', notes:'',
            direction:'', symbol:'', setup:'', news:'', emotion:'', shots:[] };
 }
-var state = { trades: loadData(), tab: 'dashboard', filter: 'all', checks: [false,false,false,false,false], form: blankForm(), editKey: null, detailKey: null, lightbox: null };
+var state = { trades: loadData(), tab: 'dashboard', filter: 'all', checks: [false,false,false,false,false], form: blankForm(), editKey: null, detailKey: null, lightbox: null, cloudOpen: false };
 
 function setState(patch) { for (var k in patch) state[k]=patch[k]; render(); }
 function commitTrades(trades) { state.trades = trades; saveData(trades); render(); }
@@ -587,10 +587,10 @@ function viewTrades() {
     html += '<button class="btn'+(state.filter===f[0]?' active':'')+'" onclick="setState({filter:\''+f[0]+'\'})">'+f[1]+'</button>';
   });
   html += '</div>';
-  html += '<div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn" onclick="doExport()">⬇ 匯出</button><button class="btn" onclick="doCopyClipboard()">📋 複製</button><button class="btn" onclick="doImportClick()">⬆ 匯入</button><button class="btn" onclick="doReset()">還原</button><button class="btn danger" onclick="doClear()">清空</button></div>';
+  html += '<div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn primary" style="width:auto;padding:6px 12px" onclick="cloudSync(\'up\')">☁️ 上傳雲端</button><button class="btn active" onclick="cloudSync(\'down\')">⬇️ 雲端載入</button><button class="btn" onclick="openCloudSettings()">⚙️ 雲端設定</button><button class="btn" onclick="doExport()">⬇ 匯出</button><button class="btn" onclick="doCopyClipboard()">📋 複製</button><button class="btn" onclick="doImportClick()">⬆ 匯入</button><button class="btn" onclick="doReset()">還原</button><button class="btn danger" onclick="doClear()">清空</button></div>';
   html += '</div>';
   html += '<input type="file" id="import-file" accept="application/json,.json" style="display:none" onchange="doImportFile(event)">';
-  html += '<div class="card" style="background:var(--blue-bg);border:none"><div style="font-size:12px;color:var(--text2);line-height:1.7">💡 <b>跨裝置同步</b>：收盤後按「匯出」下載 JSON（或「複製」到剪貼簿），丟到 Google Drive / iCloud。換裝置時打開本頁按「匯入」載入。匯出檔同時是安全備份。</div></div>';
+  html += '<div class="card" style="background:var(--blue-bg);border:none"><div style="font-size:12px;color:var(--text2);line-height:1.7">☁️ <b>跨裝置同步（推薦）</b>：先按「⚙️ 雲端設定」貼一次 GitHub Token，之後在有資料的裝置按「☁️ 上傳雲端」，換裝置開同一網址按「⬇️ 雲端載入」，交易＋截圖一起同步。<br>💾 <b>備份</b>：「匯出」會下載含截圖的完整 JSON，建議偶爾存一份到雲端硬碟。</div></div>';
 
   // 桌面表格
   html += '<div class="card hide-mobile" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>日期</th><th class="r">R</th><th class="r">餘額</th><th>標籤</th><th>備註</th><th style="width:96px"></th></tr></thead><tbody>';
@@ -642,6 +642,7 @@ function viewTrades() {
   // 明細彈窗 + 燈箱
   html += detailModalHtml();
   html += lightboxHtml();
+  html += cloudModalHtml();
   html += '</div>';
   return html;
 }
@@ -1185,26 +1186,7 @@ function doImportFile(ev) {
   var reader = new FileReader();
   reader.onload = function(e) {
     try {
-      var data = JSON.parse(e.target.result);
-      var trades = Array.isArray(data) ? data : data.trades;
-      if (!Array.isArray(trades)) throw new Error('格式不符');
-      var images = (data && data.images) || {};
-      var clean = trades.filter(function(t){ return t && typeof t.date==='string' && typeof t.r==='number'; })
-        .map(function(t){ return { date:t.date, seq:t.seq||1, time:t.time||'', r:t.r, balance:t.balance||0, notes:t.notes||'',
-          direction:t.direction||'', symbol:t.symbol||'', setup:t.setup||'', news:t.news||'', emotion:t.emotion||'', shots: Array.isArray(t.shots)?t.shots:[] }; });
-      if (!clean.length) throw new Error('沒有有效的交易資料');
-      var g={}, order=[];
-      sortTrades(clean).forEach(function(x){ if(!g[x.date]){g[x.date]=[];order.push(x.date);} g[x.date].push(x); });
-      var renum=[];
-      order.forEach(function(dt){ g[dt].forEach(function(x,i){ var c={};for(var k in x)c[k]=x[k]; c.seq=i+1; renum.push(c); }); });
-      var imgCount = Object.keys(images).length;
-      if (!confirm('將以匯入的 '+clean.length+' 筆資料'+(imgCount?'（含 '+imgCount+' 張截圖）':'')+'「取代」目前的 '+state.trades.length+' 筆。確定？\n\n（建議先按「匯出」存一份目前的資料）')) { ev.target.value=''; return; }
-      // 先還原圖片到 IndexedDB，再寫入交易
-      var imgIds = Object.keys(images);
-      Promise.all(imgIds.map(function(id){ return idbPut(id, images[id]).catch(function(){}); })).then(function(){
-        commitTrades(recalc(renum));
-        alert('匯入成功，共 '+clean.length+' 筆'+(imgCount?'、'+imgCount+' 張截圖':'')+'。');
-      });
+      applyPayloadData(JSON.parse(e.target.result), '匯入');
     } catch(err) {
       alert('匯入失敗：'+err.message+'\n請確認選的是本工具匯出的 JSON 檔。');
     }
@@ -1214,6 +1196,102 @@ function doImportFile(ev) {
 }
 function toggleCheck(i) { state.checks[i]=!state.checks[i]; render(); }
 function resetChecks() { state.checks=[false,false,false,false,false]; render(); }
+
+//=================== 雲端同步（GitHub Gist）===================
+// 設計：沿用 buildPayload()（已內含交易 + 截圖），把同一份 JSON 推到「你自己的」私密 Gist。
+// Token 只存在本機 localStorage，只需 gist 權限，外洩也只影響你的 gist。
+var GIST_TOKEN_KEY = 'lucid_gist_token', GIST_ID_KEY = 'lucid_gist_id', GIST_FILE = 'lucid-journal.json';
+function getGistToken(){ try { return localStorage.getItem(GIST_TOKEN_KEY) || ''; } catch(e){ return ''; } }
+function getGistId(){ try { return localStorage.getItem(GIST_ID_KEY) || ''; } catch(e){ return ''; } }
+function setGistToken(v){ try { v ? localStorage.setItem(GIST_TOKEN_KEY, v) : localStorage.removeItem(GIST_TOKEN_KEY); } catch(e){} }
+function setGistId(v){ try { v ? localStorage.setItem(GIST_ID_KEY, v) : localStorage.removeItem(GIST_ID_KEY); } catch(e){} }
+
+// 共用：把一份 payload（檔案匯入或雲端載入皆同格式）套用到 app
+function applyPayloadData(data, sourceLabel) {
+  var trades = Array.isArray(data) ? data : data.trades;
+  if (!Array.isArray(trades)) throw new Error('格式不符');
+  var images = (data && data.images) || {};
+  var clean = trades.filter(function(t){ return t && typeof t.date==='string' && typeof t.r==='number'; })
+    .map(function(t){ return { date:t.date, seq:t.seq||1, time:t.time||'', r:t.r, balance:t.balance||0, notes:t.notes||'',
+      direction:t.direction||'', symbol:t.symbol||'', setup:t.setup||'', news:t.news||'', emotion:t.emotion||'', shots: Array.isArray(t.shots)?t.shots:[] }; });
+  if (!clean.length) throw new Error('沒有有效的交易資料');
+  var g={}, order=[];
+  sortTrades(clean).forEach(function(x){ if(!g[x.date]){g[x.date]=[];order.push(x.date);} g[x.date].push(x); });
+  var renum=[];
+  order.forEach(function(dt){ g[dt].forEach(function(x,i){ var c={};for(var k in x)c[k]=x[k]; c.seq=i+1; renum.push(c); }); });
+  var imgCount = Object.keys(images).length;
+  if (!confirm('將以'+sourceLabel+'的 '+clean.length+' 筆資料'+(imgCount?'（含 '+imgCount+' 張截圖）':'')+'「取代」目前的 '+state.trades.length+' 筆。確定？\n\n（建議先按「匯出」存一份目前的資料）')) return;
+  var imgIds = Object.keys(images);
+  Promise.all(imgIds.map(function(id){ return idbPut(id, images[id]).catch(function(){}); })).then(function(){
+    commitTrades(recalc(renum));
+    alert(sourceLabel+'載入成功，共 '+clean.length+' 筆'+(imgCount?'、'+imgCount+' 張截圖':'')+'。');
+  });
+}
+
+function cloudSync(direction) { return direction==='up' ? doCloudUpload() : doCloudDownload(); }
+
+// 上傳：collectImages -> buildPayload -> PATCH/POST Gist
+function doCloudUpload() {
+  var token = getGistToken();
+  if (!token) { alert('還沒設定。請先按「⚙️ 雲端設定」貼上 GitHub Token。'); state.cloudOpen=true; render(); return; }
+  collectImages().then(function(images){
+    var payload = JSON.stringify(buildPayload(images));
+    var mb = payload.length/1048576;
+    if (mb > 9) { if(!confirm('備份約 '+mb.toFixed(1)+'MB，已接近 Gist 單檔上限（截圖太多）。\n仍要上傳嗎？（建議改用「匯出」存檔，或刪掉部分舊截圖）')) return; }
+    var gistId = getGistId();
+    var body = JSON.stringify({ description:'Lucid Trading Journal backup', public:false,
+      files: (function(){ var f={}; f[GIST_FILE]={content:payload}; return f; })() });
+    var url = gistId ? 'https://api.github.com/gists/'+gistId : 'https://api.github.com/gists';
+    var method = gistId ? 'PATCH' : 'POST';
+    alert('上傳中…（'+state.trades.length+' 筆 / '+mb.toFixed(2)+'MB）按確定後請稍候');
+    fetch(url, { method:method, headers:{ 'Authorization':'token '+token, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json' }, body:body })
+      .then(function(r){ if(r.status===401) throw new Error('Token 無效或過期（401）'); if(r.status===404 && gistId) throw new Error('找不到這個 Gist（404）。可能被刪了，請清空 Gist ID 後重新上傳建立新的'); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(data){ if(!gistId && data.id){ setGistId(data.id); } alert('✅ 上傳成功！\nGist ID：'+getGistId()+'\n\n換手機時：開同一個網址 → 雲端設定貼一樣的 Token → 按「⬇️ 雲端載入」。'); render(); })
+      .catch(function(e){ alert('❌ 上傳失敗：'+e.message); });
+  });
+}
+
+// 載入：GET Gist -> 取檔案內容（過大則走 raw_url）-> applyPayloadData
+function doCloudDownload() {
+  var token = getGistToken(), gistId = getGistId();
+  if (!token) { alert('還沒設定 Token。請先按「⚙️ 雲端設定」。'); state.cloudOpen=true; render(); return; }
+  if (!gistId) { alert('還沒有 Gist ID。請先在「有資料的那台裝置」按一次「☁️ 上傳」，會自動產生 Gist ID；或在雲端設定手動貼上。'); state.cloudOpen=true; render(); return; }
+  fetch('https://api.github.com/gists/'+gistId, { headers:{ 'Authorization':'token '+token, 'Accept':'application/vnd.github+json' } })
+    .then(function(r){ if(r.status===401) throw new Error('Token 無效或過期（401）'); if(r.status===404) throw new Error('找不到這個 Gist（404）。確認 Gist ID 是否正確'); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      var file = data.files && data.files[GIST_FILE];
+      if (!file) throw new Error('這個 Gist 裡找不到備份檔（'+GIST_FILE+'）');
+      if (file.truncated && file.raw_url) return fetch(file.raw_url).then(function(r){ return r.text(); });
+      return file.content;
+    })
+    .then(function(text){ applyPayloadData(JSON.parse(text), '雲端'); })
+    .catch(function(e){ alert('❌ 載入失敗：'+e.message); });
+}
+
+// 雲端設定彈窗
+function openCloudSettings(){ state.cloudOpen=true; render(); }
+function closeCloudSettings(ev){ if(ev && ev.target && !ev.target.classList.contains('modal-overlay')) return; captureCloudFields(); state.cloudOpen=false; render(); }
+function captureCloudFields(){
+  var tk=document.getElementById('cloud-token'), gd=document.getElementById('cloud-gistid');
+  if(tk) setGistToken(tk.value.trim());
+  if(gd) setGistId(gd.value.trim());
+}
+function saveCloudSettings(){ captureCloudFields(); alert('已儲存。Token 與 Gist ID 只存在這台裝置的瀏覽器。'); state.cloudOpen=false; render(); }
+function clearCloudSettings(){ if(!confirm('清除這台裝置上儲存的 Token 與 Gist ID？（雲端 Gist 本身不會被刪）')) return; setGistToken(''); setGistId(''); render(); }
+function cloudModalHtml(){
+  if (!state.cloudOpen) return '';
+  var tk = getGistToken(), gd = getGistId();
+  var masked = tk ? (tk.slice(0,4)+'••••••••'+tk.slice(-4)) : '';
+  var html = '<div class="modal-overlay" onclick="closeCloudSettings(event)"><div class="modal" onclick="event.stopPropagation()">';
+  html += '<div class="row" style="margin-bottom:12px"><h3 style="margin:0">☁️ 雲端同步設定</h3><button class="btn" onclick="closeCloudSettings()">關閉</button></div>';
+  html += '<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px">把交易＋截圖同步到你自己的私密 GitHub Gist。Token 只存在這台裝置，建議只給 <b>gist</b> 權限。每台裝置都貼<b>同一組</b> Token 與 Gist ID 即可互通。</div>';
+  html += '<label class="fld" style="margin-bottom:12px"><span class="l">GitHub Token（gist 權限）'+(tk?' · 目前：'+masked:'')+'</span><input type="password" id="cloud-token" value="'+esc(tk)+'" placeholder="貼上 ghp_ 開頭的 token" autocomplete="off"></label>';
+  html += '<label class="fld" style="margin-bottom:14px"><span class="l">Gist ID（第一次上傳後會自動填入；換裝置時貼上同一個）</span><input type="text" id="cloud-gistid" value="'+esc(gd)+'" placeholder="第一次上傳會自動產生，留空即可"></label>';
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"><button class="btn primary" style="flex:1" onclick="saveCloudSettings()">儲存設定</button><button class="btn danger" onclick="clearCloudSettings()">清除</button></div>';
+  html += '<div style="font-size:12px;color:var(--text2);line-height:1.8;border-top:1px solid var(--border);padding-top:12px"><b>如何取得 Token：</b><br>1. 開 github.com → 右上頭像 → Settings<br>2. 最左下 Developer settings → Personal access tokens → <b>Tokens (classic)</b><br>3. Generate new token (classic)<br>4. 勾選範圍只勾 <b>gist</b> 這一項<br>5. Generate → 複製 ghp_ 開頭那串貼回上面<br><span style="color:var(--amber)">⚠ Token 等於鑰匙，別貼到公開的地方。只勾 gist 權限，風險最小。</span></div>';
+  html += '</div></div>';
+  return html;
+}
 
 //=================== 渲染 ===================
 function render() {
@@ -1250,7 +1328,7 @@ function setupDropAreas() {
     });
   });
 }
-function changeTab(tab) { if(state.tab==='add') captureForm(); state.tab=tab; state.detailKey=null; state.lightbox=null; render(); }
+function changeTab(tab) { if(state.tab==='add') captureForm(); state.tab=tab; state.detailKey=null; state.lightbox=null; state.cloudOpen=false; render(); }
 
 //=================== PWA：可安裝為應用程式（需透過網址開啟，file:// 不支援）===================
 (function setupPWA(){
