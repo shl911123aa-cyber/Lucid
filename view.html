@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Lucid Journal · 唯讀檢視</title>
+<meta name="theme-color" content="#2563eb" />
+<style>
+
+  :root {
+    --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0;
+    --text: #0f172a; --text2: #64748b; --text3: #94a3b8;
+    --blue: #2563eb; --green: #10b981; --red: #ef4444; --amber: #f59e0b;
+    --green-bg: #ecfdf5; --red-bg: #fef2f2; --amber-bg: #fffbeb; --blue-bg: #eff6ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #020617; --card: #0f172a; --border: #1e293b;
+      --text: #f1f5f9; --text2: #94a3b8; --text3: #475569;
+      --green-bg: #022c22; --red-bg: #2c0a0a; --amber-bg: #2c1e05; --blue-bg: #0a1e3c;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5; font-size: 14px;
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+
+  header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .head-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 0; }
+  .head-title { font-size: 18px; font-weight: 600; }
+  .head-sub { font-size: 12px; color: var(--text2); }
+  .head-stats { display: flex; gap: 16px; }
+  .head-stat { text-align: right; }
+  .head-stat .lbl { font-size: 12px; color: var(--text2); }
+  .head-stat .val { font-size: 18px; font-weight: 600; }
+
+  nav { display: flex; gap: 4px; overflow-x: auto; }
+  nav button {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    padding: 8px 12px; font-size: 14px; font-weight: 500; color: var(--text2);
+    cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+    font-family: inherit;
+  }
+  nav button.active { color: var(--blue); border-bottom-color: var(--blue); }
+  nav button:hover:not(.active) { color: var(--text); }
+
+  main { padding: 20px 0; }
+  .grid { display: grid; gap: 12px; }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g6 { grid-template-columns: repeat(6, 1fr); }
+  @media (max-width: 900px) { .g6 { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) { .g6 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: 1fr; } .hide-sm { display: none; } .hide-mobile { display: none !important; } .show-mobile { display: block !important; } }
+  .tg { display:inline-block; padding:1px 7px; border-radius:999px; background:var(--bg); border:1px solid var(--border); color:var(--text2); font-size:11px; line-height:1.6; white-space:nowrap; }
+  .tg-blue { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); }
+  .tg-red { background:var(--red-bg); border-color:var(--red); color:var(--red); }
+  .iconbtn { padding:4px 7px; border:none; background:none; font-size:14px; }
+  .iconbtn:hover { background:var(--bg); }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .card-sm { padding: 14px; }
+  .card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+
+  .stat-lbl { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .stat-val { font-size: 20px; font-weight: 600; }
+  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .green { color: var(--green); } .red { color: var(--red); } .amber { color: var(--amber); }
+
+  .stack { display: flex; flex-direction: column; gap: 20px; }
+  .row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  .bar-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+
+  button.btn {
+    padding: 6px 12px; font-size: 14px; border-radius: 6px; cursor: pointer;
+    background: var(--card); color: var(--text); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
+  }
+  button.btn:hover { background: var(--bg); }
+  button.btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  button.btn.danger { color: var(--red); }
+  button.btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); width: 100%; justify-content: center; padding: 10px; }
+  button.btn.primary:hover { background: #1d4ed8; }
+  .tagbtn {
+    padding: 6px 12px; font-size: 13px; border-radius: 999px; cursor: pointer;
+    background: var(--bg); color: var(--text2); border: 1px solid var(--border);
+    font-family: inherit; transition: all .12s;
+  }
+  .tagbtn:hover { border-color: var(--blue); color: var(--text); }
+  .tagbtn.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .droparea {
+    display:block; border:1.5px dashed var(--border); border-radius:8px; padding:18px;
+    text-align:center; color:var(--text2); font-size:13px; cursor:pointer; transition:all .15s; background:var(--bg);
+  }
+  .droparea:hover { border-color:var(--blue); color:var(--text); }
+  .droparea.dragging { border-color:var(--blue); background:var(--blue-bg); }
+  .shot-thumb { position:relative; width:88px; height:64px; border-radius:6px; overflow:hidden; border:1px solid var(--border); background:var(--bg); }
+  .shot-thumb.lg { width:120px; height:88px; }
+  .shot-thumb img { width:100%; height:100%; object-fit:cover; cursor:pointer; display:block; background:var(--card); }
+  .shot-del {
+    position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%;
+    background:rgba(0,0,0,0.6); color:#fff; border:none; cursor:pointer; font-size:14px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .shot-del:hover { background:var(--red); }
+  .shot-count {
+    display:inline-block; min-width:15px; height:15px; line-height:15px; padding:0 3px; margin-left:2px;
+    background:var(--blue); color:#fff; border-radius:999px; font-size:10px; vertical-align:top;
+  }
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:50;
+    display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto;
+  }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; width:100%; max-width:560px; }
+  .lightbox-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:60;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .lightbox-overlay img { max-width:96vw; max-height:92vh; border-radius:6px; }
+  .lightbox-close {
+    position:fixed; top:16px; right:20px; width:40px; height:40px; border-radius:50%;
+    background:rgba(255,255,255,0.15); color:#fff; border:none; font-size:24px; cursor:pointer;
+  }
+  .lightbox-close:hover { background:rgba(255,255,255,0.3); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead { background: var(--bg); border-bottom: 1px solid var(--border); }
+  th { text-align: left; padding: 8px 12px; font-weight: 500; color: var(--text2); }
+  th.r, td.r { text-align: right; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: var(--bg); }
+  .table-foot { padding: 8px 12px; background: var(--bg); font-size: 12px; color: var(--text2); border-top: 1px solid var(--border); }
+
+  label.fld { display: block; }
+  label.fld .l { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+  input, select, textarea {
+    width: 100%; padding: 8px 12px; font-size: 14px; border-radius: 6px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .checkbox-row input { width: 16px; height: 16px; accent-color: var(--blue); }
+
+  .alert { border-radius: 8px; padding: 16px; display: flex; gap: 12px; }
+  .alert.amber { background: var(--amber-bg); border: 1px solid var(--amber); }
+  .alert.blue { background: var(--blue-bg); }
+
+  .check-item {
+    display: flex; align-items: flex-start; gap: 12px; padding: 12px;
+    border-radius: 6px; border: 1px solid var(--border); background: var(--bg);
+    cursor: pointer; transition: all .15s;
+  }
+  .check-item.on { background: var(--green-bg); border-color: var(--green); }
+  .check-item input { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--green); flex-shrink: 0; }
+
+  .rule { display: flex; gap: 12px; }
+  .rule .num {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--red-bg);
+    color: var(--red); display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+  }
+  .pill { font-size: 12px; padding: 2px 8px; border-radius: 4px; background: var(--bg); }
+  footer { padding: 24px 16px; text-align: center; font-size: 12px; color: var(--text3); }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
+  .badge.ls { background: var(--green-bg); color: var(--green); }
+  .muted { color: var(--text3); }
+  svg text { font-family: inherit; }
+
+.ro-banner{background:var(--blue-bg);border:none;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app"><div class="wrap" style="padding:40px 16px;text-align:center;color:var(--text2)"><div class="spin"></div><div style="margin-top:12px">載入中…</div></div></div>
+
+<script>
+//=================== 共用純函式（與主程式一致）===================
+var R_UNIT = 200, START_BALANCE = 50000, TARGET_R = 15;
+
+var TAX = {
+  direction: { label:'方向', opts:[['long','做多'],['short','做空']] },
+  symbol:    { label:'商品', opts:[['EURUSD','EURUSD'],['GBPUSD','GBPUSD'],['XAUUSD','黃金'],['USDJPY','USDJPY'],['other','其他']] },
+  setup:     { label:'Setup', opts:[['ema','EMA反彈'],['range','Range回歸'],['breakout','突破回踩'],['fakeout','假突破'],['other','其他']] },
+  news:      { label:'新聞', opts:[['pre','新聞前'],['post','新聞後'],['none','無關']] },
+  emotion:   { label:'情緒', opts:[['calm','😊 平靜'],['normal','😐 普通'],['revenge','😤 報復交易'],['overconf','😎 過度自信']] }
+};
+
+function taxLabel(field, val) {
+  if (!val) return '';
+  var o = TAX[field].opts.filter(function(x){return x[0]===val;})[0];
+  return o ? o[1] : val;
+}
+// 盤口：依進場時間 (UTC+8) 自動推算
+// 亞洲 06:00-14:00 / 歐洲 14:00-20:00 / 美盤 20:00-04:00(隔日) / 其餘 盤前
+
+function sessionFromTime(time) {
+  if (!time || time.indexOf(':')<0) return '';
+  var h = parseInt(time.split(':')[0],10);
+  var m = parseInt(time.split(':')[1],10);
+  if (isNaN(h)) return '';
+  var mins = h*60 + (isNaN(m)?0:m);
+  if (mins>=360 && mins<840) return 'asia';     // 06:00-14:00
+  if (mins>=840 && mins<1200) return 'europe';  // 14:00-20:00
+  if (mins>=1200 || mins<240) return 'us';      // 20:00-04:00
+  return 'other';
+}
+
+function sessionLabel(s) {
+  return {asia:'亞洲盤',europe:'歐洲盤',us:'美盤',other:'其他'}[s] || '—';
+}
+// 黃金時段判定（你發現的 21:35 後）
+
+function isGoldenTime(time) {
+  if (!time || time.indexOf(':')<0) return false;
+  var p = time.split(':');
+  var mins = parseInt(p[0],10)*60 + parseInt(p[1],10);
+  return mins >= (21*60+35) || mins < 240; // 21:35 之後（含跨夜到 04:00）
+}
+// 時段分桶（4 小時一段）供時間分析
+
+function timeBucket(time) {
+  if (!time || time.indexOf(':')<0) return null;
+  var h = parseInt(time.split(':')[0],10);
+  if (isNaN(h)) return null;
+  if (h>=8 && h<12) return '08-12';
+  if (h>=12 && h<16) return '12-16';
+  if (h>=16 && h<20) return '16-20';
+  if (h>=20 && h<24) return '20-24';
+  if (h>=0 && h<4) return '00-04';
+  if (h>=4 && h<8) return '04-08';
+  return null;
+}
+
+//=================== 預設 50 筆 ===================
+
+function sortTrades(t) {
+  return t.slice().sort(function(a,b){ if(a.date!==b.date) return a.date<b.date?-1:1; return a.seq-b.seq; });
+}
+
+function calcStats(trades) {
+  if (!trades.length) return {totalR:0,winRate:0,avgWin:0,avgLoss:0,payoff:0,expectancy:0,breakEvenWR:0,maxDD:0,maxLossStreak:0,maxWinStreak:0,winCount:0,lossCount:0,totalTrades:0,currentBalance:START_BALANCE,peakBalance:START_BALANCE,troughBalance:START_BALANCE};
+  var s = sortTrades(trades);
+  var totalR = s.reduce(function(a,t){return a+t.r;},0);
+  var wins = s.filter(function(t){return t.r>0;});
+  var losses = s.filter(function(t){return t.r<0;});
+  var winRate = wins.length/s.length;
+  var avgWin = wins.length ? wins.reduce(function(a,t){return a+t.r;},0)/wins.length : 0;
+  var avgLoss = losses.length ? losses.reduce(function(a,t){return a+t.r;},0)/losses.length : 0;
+  var payoff = Math.abs(avgLoss)>0 ? avgWin/Math.abs(avgLoss) : 0;
+  var expectancy = totalR/s.length;
+  var breakEvenWR = payoff>0 ? 1/(1+payoff) : 0;
+  var peak=START_BALANCE, maxDD=0, trough=START_BALANCE;
+  s.forEach(function(t){ if(t.balance>peak)peak=t.balance; if(t.balance<trough)trough=t.balance; var dd=(peak-t.balance)/R_UNIT; if(dd>maxDD)maxDD=dd; });
+  var cls=0,mls=0,cws=0,mws=0;
+  s.forEach(function(t){ if(t.r<0){cls++;cws=0;if(cls>mls)mls=cls;} else if(t.r>0){cws++;cls=0;if(cws>mws)mws=cws;} });
+  return {totalR:totalR,winRate:winRate,avgWin:avgWin,avgLoss:avgLoss,payoff:payoff,expectancy:expectancy,breakEvenWR:breakEvenWR,maxDD:maxDD,maxLossStreak:mls,maxWinStreak:mws,winCount:wins.length,lossCount:losses.length,totalTrades:s.length,currentBalance:s[s.length-1].balance,peakBalance:peak,troughBalance:trough};
+}
+
+function groupByDate(trades) {
+  var s = sortTrades(trades), g = {}, order = [];
+  s.forEach(function(t){ if(!g[t.date]){g[t.date]={date:t.date,trades:[],totalR:0};order.push(t.date);} g[t.date].trades.push(t); g[t.date].totalR+=t.r; });
+  return order.map(function(d){return g[d];});
+}
+// 餘額為準：每筆的 balance 是真實值，R 由「本筆餘額 - 前一筆餘額」推算
+
+function fmtR(r){ return (r>=0?'+':'')+r.toFixed(2)+'R'; }
+
+function fmtU(u){ return (u>=0?'+':'')+Math.round(u).toLocaleString()+'U'; }
+
+function fmtP(p){ return (p*100).toFixed(1)+'%'; }
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+//=================== SVG 折線圖 ===================
+
+function lineChart(data, w, h) {
+  if (!data.length) return '';
+  var pad = {t:10,r:50,b:24,l:48};
+  var iw = w-pad.l-pad.r, ih = h-pad.t-pad.b;
+  var vals = data.map(function(d){return d.balance;});
+  var min = Math.min.apply(null, vals)-200, max = Math.max.apply(null, vals)+200;
+  var targetY = START_BALANCE + TARGET_R*R_UNIT;
+  max = Math.max(max, targetY+100);
+  var rng = max-min || 1;
+  function x(i){ return pad.l + (data.length>1 ? i/(data.length-1)*iw : iw/2); }
+  function y(v){ return pad.t + (1-(v-min)/rng)*ih; }
+  var pts = data.map(function(d,i){return x(i)+','+y(d.balance);}).join(' ');
+  var area = pad.l+','+(pad.t+ih)+' '+pts+' '+(pad.l+iw)+','+(pad.t+ih);
+  var startY = y(START_BALANCE), tY = y(targetY);
+  var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" style="display:block">';
+  // y grid
+  for (var gi=0; gi<=4; gi++){
+    var gv = min + rng*gi/4, gy = y(gv);
+    svg += '<line x1="'+pad.l+'" y1="'+gy+'" x2="'+(pad.l+iw)+'" y2="'+gy+'" stroke="var(--border)" stroke-width="1"/>';
+    svg += '<text x="'+(pad.l-6)+'" y="'+(gy+3)+'" text-anchor="end" font-size="10" fill="var(--text3)">'+Math.round(gv).toLocaleString()+'</text>';
+  }
+  // start line
+  svg += '<line x1="'+pad.l+'" y1="'+startY+'" x2="'+(pad.l+iw)+'" y2="'+startY+'" stroke="var(--text3)" stroke-width="1" stroke-dasharray="3 3"/>';
+  // target line
+  svg += '<line x1="'+pad.l+'" y1="'+tY+'" x2="'+(pad.l+iw)+'" y2="'+tY+'" stroke="var(--green)" stroke-width="1" stroke-dasharray="3 3"/>';
+  svg += '<text x="'+(pad.l+iw)+'" y="'+(tY-4)+'" text-anchor="end" font-size="10" fill="var(--green)">目標 +15R</text>';
+  // area + line
+  svg += '<polygon points="'+area+'" fill="var(--blue)" opacity="0.08"/>';
+  svg += '<polyline points="'+pts+'" fill="none" stroke="var(--blue)" stroke-width="2"/>';
+  // x labels (sparse)
+  var step = Math.max(1, Math.ceil(data.length/10));
+  data.forEach(function(d,i){
+    if (i%step===0 || i===data.length-1){
+      svg += '<text x="'+x(i)+'" y="'+(h-8)+'" text-anchor="middle" font-size="9" fill="var(--text3)">'+d.label+'</text>';
+    }
+  });
+  // last point dot
+  var li = data.length-1;
+  svg += '<circle cx="'+x(li)+'" cy="'+y(data[li].balance)+'" r="3" fill="var(--blue)"/>';
+  svg += '</svg>';
+  return svg;
+}
+
+//=================== SVG 長條圖 ===================
+
+function barChart(data, w, h) {
+  if (!data.length) return '';
+  var pad = {t:10,r:10,b:30,l:40};
+  var iw = w-pad.l-pad.r, ih = h-pad.t-pad.b;
+  var vals = data.map(function(d){return d.totalR;});
+  var max = Math.max.apply(null, vals.concat([0.5])), min = Math.min.apply(null, vals.concat([-0.5]));
+  var rng = max-min || 1;
+  function y(v){ return pad.t + (1-(v-min)/rng)*ih; }
+  var zeroY = y(0);
+  var bw = iw/data.length*0.7, gap = iw/data.length*0.3;
+  var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" style="display:block">';
+  // y grid
+  for (var gi=0; gi<=4; gi++){
+    var gv = min + rng*gi/4, gy = y(gv);
+    svg += '<line x1="'+pad.l+'" y1="'+gy+'" x2="'+(pad.l+iw)+'" y2="'+gy+'" stroke="var(--border)" stroke-width="1"/>';
+    svg += '<text x="'+(pad.l-6)+'" y="'+(gy+3)+'" text-anchor="end" font-size="10" fill="var(--text3)">'+gv.toFixed(1)+'R</text>';
+  }
+  svg += '<line x1="'+pad.l+'" y1="'+zeroY+'" x2="'+(pad.l+iw)+'" y2="'+zeroY+'" stroke="var(--text3)" stroke-width="1"/>';
+  data.forEach(function(d,i){
+    var bx = pad.l + i*(iw/data.length) + gap/2;
+    var by = d.totalR>=0 ? y(d.totalR) : zeroY;
+    var bh = Math.abs(y(d.totalR)-zeroY);
+    var col = d.totalR>=0 ? 'var(--green)' : 'var(--red)';
+    svg += '<rect x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="2" fill="'+col+'"><title>'+d.date+' '+fmtR(d.totalR)+' ('+d.count+'筆)</title></rect>';
+    if (i % Math.max(1,Math.ceil(data.length/12)) === 0)
+      svg += '<text x="'+(bx+bw/2)+'" y="'+(h-8)+'" text-anchor="middle" font-size="9" fill="var(--text3)">'+d.date+'</text>';
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+//=================== App 狀態 ===================
+
+function annotateViolations(trades) {
+  var s = sortTrades(trades);
+  var byDate = {};
+  s.forEach(function(t){ if(!byDate[t.date])byDate[t.date]=[]; byDate[t.date].push(t); });
+  var out = {};
+  for (var d in byDate) {
+    var arr = byDate[d], lossStreak = 0;
+    arr.forEach(function(t, i){
+      var reasons = [];
+      if (i >= 5) reasons.push('單日第'+(i+1)+'筆');
+      if (lossStreak >= 3) reasons.push('連虧'+lossStreak+'後續做');
+      out[t.date+'#'+t.seq] = reasons;
+      if (t.r < 0) lossStreak++; else if (t.r > 0) lossStreak = 0;
+    });
+  }
+  return out;
+}
+
+function tradeKey(t){ return t.date+'#'+t.seq; }
+
+//=================== 各分頁 HTML ===================
+
+function breakdownBy(trades, keyFn, labelFn) {
+  var groups = {};
+  trades.forEach(function(t){
+    var k = keyFn(t);
+    if (k===null || k===undefined || k==='') return;
+    if (!groups[k]) groups[k] = { key:k, n:0, wins:0, totalR:0 };
+    groups[k].n++; groups[k].totalR += t.r; if (t.r>0) groups[k].wins++;
+  });
+  var rows = [];
+  for (var k in groups) {
+    var g = groups[k];
+    rows.push({ key:k, label: labelFn(k), n:g.n, winRate:g.wins/g.n, avgR:g.totalR/g.n, totalR:g.totalR });
+  }
+  rows.sort(function(a,b){ return b.avgR - a.avgR; });
+  return rows;
+}
+// 把分組結果畫成表格（含勝率、平均R、總R、筆數），平均R 用顏色標示
+
+//=================== 唯讀檢視專用 ===================
+var GIST_FILE='lucid-journal.json';
+var VST={ trades:[], tab:'dashboard', loading:true, error:'', updatedAt:'' };
+function setV(p){ for(var k in p)VST[k]=p[k]; renderRO(); }
+
+// 截圖：存進本檢視器自己的 IndexedDB（與主程式分開的 DB 名稱以免干擾）
+var IDB_NAME='lucid_view_shots', IDB_STORE='images', _idb=null;
+function idbOpen(){ return new Promise(function(res,rej){ if(_idb)return res(_idb); if(!window.indexedDB)return rej(new Error('no idb')); var q=indexedDB.open(IDB_NAME,1); q.onupgradeneeded=function(e){var db=e.target.result; if(!db.objectStoreNames.contains(IDB_STORE))db.createObjectStore(IDB_STORE);}; q.onsuccess=function(e){_idb=e.target.result;res(_idb);}; q.onerror=function(){rej(q.error);}; }); }
+function idbPut(id,d){ return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).put(d,id);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});}); }
+function idbGet(id){ return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction(IDB_STORE,'readonly');var r=tx.objectStore(IDB_STORE).get(id);r.onsuccess=function(){res(r.result||null);};r.onerror=function(){rej(r.error);};});}); }
+
+function getGistIdFromUrl(){
+  var h=(location.hash||'').replace(/^#/,'').trim();
+  if(h) return h;
+  var q=new URLSearchParams(location.search); return (q.get('gist')||'').trim();
+}
+
+function loadPublic(){
+  var id=getGistIdFromUrl();
+  if(!id){ setV({loading:false,error:'網址沒有指定 Gist ID。正確格式應為 …/view.html#你的GistID'}); return; }
+  setV({loading:true,error:''});
+  // 公開 gist 不需 token
+  fetch('https://api.github.com/gists/'+id,{headers:{'Accept':'application/vnd.github+json'}})
+    .then(function(r){ if(r.status===404)throw new Error('找不到這個 Gist（404）。可能還沒建立公開分享，或網址錯誤。'); if(r.status===403)throw new Error('GitHub 暫時限流（403），請稍後再試。'); if(!r.ok)throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      var file=data.files&&data.files[GIST_FILE];
+      if(!file)throw new Error('這個 Gist 裡找不到資料檔。');
+      var p = (file.truncated&&file.raw_url) ? fetch(file.raw_url).then(function(r){return r.text();}) : Promise.resolve(file.content);
+      return p.then(function(text){ return {payload:JSON.parse(text), updatedAt:data.updated_at}; });
+    })
+    .then(function(o){
+      var d=o.payload;
+      var trades=Array.isArray(d)?d:d.trades;
+      if(!Array.isArray(trades))throw new Error('資料格式不符。');
+      var clean=trades.filter(function(t){return t&&typeof t.date==='string'&&typeof t.r==='number';})
+        .map(function(t){return {date:t.date,seq:t.seq||1,time:t.time||'',r:t.r,balance:t.balance||0,notes:t.notes||'',direction:t.direction||'',symbol:t.symbol||'',setup:t.setup||'',news:t.news||'',emotion:t.emotion||'',shots:Array.isArray(t.shots)?t.shots:[]};});
+      var images=(d&&d.images)||{};
+      var ids=Object.keys(images);
+      return Promise.all(ids.map(function(k){return idbPut(k,images[k]).catch(function(){});})).then(function(){
+        setV({trades:sortTrades(clean),loading:false,error:'',updatedAt:o.updatedAt||''});
+      });
+    })
+    .catch(function(e){ setV({loading:false,error:e.message}); });
+}
+
+function hydrateThumbsRO(){
+  document.querySelectorAll('img[id^="vthumb-"]').forEach(function(el){
+    var id=el.id.replace('vthumb-','');
+    idbGet(id).then(function(d){ if(d)el.src=d; }).catch(function(){});
+  });
+}
+
+function statCardRO(lbl,val,sub,tone){ return '<div class="card card-sm"><div class="stat-lbl">'+lbl+'</div><div class="stat-val '+(tone||'')+'">'+val+'</div>'+(sub?'<div class="stat-sub">'+sub+'</div>':'')+'</div>'; }
+
+function viewDashboardRO(){
+  var t=VST.trades, s=calcStats(t);
+  if(!t.length) return '<div class="card" style="padding:40px;text-align:center;color:var(--text2)">這份分享目前沒有交易資料。</div>';
+  var sorted=sortTrades(t);
+  var eq=[{label:"起",balance:START_BALANCE}].concat(sorted.map(function(tr,i){return {label:'T'+(i+1),balance:tr.balance};}));
+  var daily=groupByDate(t).map(function(g){return {date:g.date.slice(5),totalR:g.totalR,count:g.trades.length};});
+  var prog=Math.max(0,Math.min(100,s.totalR/TARGET_R*100));
+  var beHit=s.winRate>=s.breakEvenWR;
+  var h='<div class="stack"><div class="grid g6">';
+  h+=statCardRO('總盈虧',fmtR(s.totalR),fmtU(s.totalR*R_UNIT),s.totalR>0?'green':(s.totalR<0?'red':''));
+  h+=statCardRO('勝率',fmtP(s.winRate),s.winCount+' 勝 '+s.lossCount+' 負 / '+s.totalTrades,beHit?'green':'red');
+  h+=statCardRO('期望值/筆',fmtR(s.expectancy),'約 '+Math.round(s.expectancy*R_UNIT)+' U',s.expectancy>0?'green':(s.expectancy<0?'red':''));
+  h+=statCardRO('盈虧比',s.payoff.toFixed(2),fmtR(s.avgWin)+' / '+fmtR(s.avgLoss),'');
+  h+=statCardRO('最大回撤','-'+s.maxDD.toFixed(2)+'R','最低 '+Math.round(s.troughBalance).toLocaleString()+'U','red');
+  h+=statCardRO('打平勝率',fmtP(s.breakEvenWR),beHit?'已超過':'差 '+((s.breakEvenWR-s.winRate)*100).toFixed(1)+'%',beHit?'green':'amber');
+  h+='</div>';
+  h+='<div class="card"><div class="row" style="margin-bottom:8px"><div style="color:var(--text2)">考試階段進度</div><div style="font-weight:500"><span class="'+(s.totalR>0?'green':'red')+'">'+fmtR(s.totalR)+'</span><span class="muted"> / +'+TARGET_R+'R</span></div></div><div class="bar-track"><div class="bar-fill" style="width:'+(s.totalR>0?prog:0)+'%;background:'+(s.totalR>0?'var(--green)':'var(--red)')+'"></div></div></div>';
+  h+='<div class="card"><h3>連貫資金曲線</h3>'+lineChart(eq,1040,300)+'</div>';
+  h+='<div class="card"><h3>分日表現</h3>'+barChart(daily,1040,260)+'</div>';
+  h+='<div class="grid g2"><div class="card"><div class="stat-lbl">最長連敗</div><div class="stat-val red">'+s.maxLossStreak+' 筆</div></div><div class="card"><div class="stat-lbl">最長連勝</div><div class="stat-val green">'+s.maxWinStreak+' 筆</div></div></div>';
+  h+='</div>';
+  return h;
+}
+
+function tradeTagsRO(x,vr){
+  var p=[];
+  if(x.direction)p.push('<span class="tg">'+taxLabel('direction',x.direction)+'</span>');
+  if(x.symbol)p.push('<span class="tg">'+taxLabel('symbol',x.symbol)+'</span>');
+  var sess=sessionFromTime(x.time); if(sess)p.push('<span class="tg">'+sessionLabel(sess)+'</span>');
+  if(x.setup)p.push('<span class="tg tg-blue">'+taxLabel('setup',x.setup)+'</span>');
+  if(x.emotion)p.push('<span class="tg">'+taxLabel('emotion',x.emotion)+'</span>');
+  if(vr&&vr.length)p.push('<span class="tg tg-red">⚠ 違規</span>');
+  return p.join(' ');
+}
+
+function viewTradesRO(){
+  var t=VST.trades; if(!t.length)return '';
+  var viol=annotateViolations(t);
+  var sorted=sortTrades(t).reverse();
+  var h='<div class="stack"><div class="card hide-mobile" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>日期</th><th class="r">R</th><th class="r">餘額</th><th>標籤</th><th>備註</th><th class="r">截圖</th></tr></thead><tbody>';
+  sorted.forEach(function(x){
+    var rc=x.r>0?'green':(x.r<0?'red':'');
+    var vr=viol[tradeKey(x)]||[];
+    h+='<tr><td class="muted tnum">'+x.seq+'</td><td class="tnum" style="white-space:nowrap">'+x.date.slice(5)+(x.time?' <span class="muted" style="font-size:11px">'+x.time+'</span>':'')+'</td><td class="r tnum" style="font-weight:500"><span class="'+rc+'">'+fmtR(x.r)+'</span></td><td class="r tnum" style="color:var(--text2)">'+Math.round(x.balance).toLocaleString()+'</td><td style="font-size:11px">'+tradeTagsRO(x,vr)+'</td><td style="color:var(--text2);font-size:12px;max-width:220px">'+(x.notes?esc(x.notes):'<span class="muted">—</span>')+'</td><td class="r">'+((x.shots&&x.shots.length)?'<span class="shot-count" style="position:static">'+x.shots.length+'</span>':'<span class="muted">—</span>')+'</td></tr>';
+    if(x.shots&&x.shots.length){
+      h+='<tr><td></td><td colspan="6" style="padding-top:0"><div style="display:flex;flex-wrap:wrap;gap:6px;padding-bottom:6px">';
+      x.shots.forEach(function(id){ h+='<div class="shot-thumb"><img id="vthumb-'+id+'" alt="截圖"></div>'; });
+      h+='</div></td></tr>';
+    }
+  });
+  h+='</tbody></table></div><div class="table-foot">共 '+t.length+' 筆</div></div>';
+  // 手機卡片
+  h+='<div class="show-mobile" style="display:none"><div class="stack" style="gap:10px">';
+  sorted.forEach(function(x){
+    var rc=x.r>0?'green':(x.r<0?'red':'');
+    var vr=viol[tradeKey(x)]||[];
+    h+='<div class="card card-sm"><div class="row" style="margin-bottom:6px"><div style="font-weight:500" class="tnum">'+x.date.slice(5)+' <span class="muted" style="font-size:12px">#'+x.seq+(x.time?' · '+x.time:'')+'</span></div><div class="tnum '+rc+'" style="font-size:18px;font-weight:600">'+fmtR(x.r)+'</div></div>';
+    var tg=tradeTagsRO(x,vr); if(tg)h+='<div style="margin-bottom:6px;font-size:11px">'+tg+'</div>';
+    if(x.notes)h+='<div style="font-size:12px;color:var(--text2);margin-bottom:8px">'+esc(x.notes)+'</div>';
+    if(x.shots&&x.shots.length){ h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'; x.shots.forEach(function(id){h+='<div class="shot-thumb"><img id="vthumb-'+id+'" alt="截圖"></div>';}); h+='</div>'; }
+    h+='<div class="muted tnum" style="font-size:12px">餘額 '+Math.round(x.balance).toLocaleString()+'U</div></div>';
+  });
+  h+='</div></div></div>';
+  return h;
+}
+
+function breakdownTableRO(rows,first){
+  if(!rows.length)return '<p style="font-size:12px;color:var(--text3)">無標籤資料</p>';
+  var h='<div style="overflow-x:auto"><table><thead><tr><th>'+first+'</th><th class="r">筆數</th><th class="r">勝率</th><th class="r">平均R</th><th class="r">總R</th></tr></thead><tbody>';
+  rows.forEach(function(r){var rc=r.avgR>0?'green':(r.avgR<0?'red':'');h+='<tr><td style="font-weight:500">'+esc(r.label)+'</td><td class="r tnum muted">'+r.n+'</td><td class="r tnum">'+fmtP(r.winRate)+'</td><td class="r tnum '+rc+'" style="font-weight:600">'+fmtR(r.avgR)+'</td><td class="r tnum '+(r.totalR>0?'green':(r.totalR<0?'red':''))+'">'+fmtR(r.totalR)+'</td></tr>';});
+  h+='</tbody></table></div>'; return h;
+}
+function viewAnalysisRO(){
+  var t=VST.trades; if(!t.length)return '';
+  var sorted=sortTrades(t);
+  var setupRows=breakdownBy(sorted,function(t){return t.setup;},function(k){return taxLabel('setup',k);});
+  var sessionRows=breakdownBy(sorted,function(t){return sessionFromTime(t.time);},function(k){return sessionLabel(k);});
+  var emotionRows=breakdownBy(sorted,function(t){return t.emotion;},function(k){return taxLabel('emotion',k);});
+  var dirRows=breakdownBy(sorted,function(t){return t.direction;},function(k){return taxLabel('direction',k);});
+  // 違規 vs 正常
+  var vmap=annotateViolations(t),normalT=[],violT=[];
+  sorted.forEach(function(x){ if((vmap[tradeKey(x)]||[]).length)violT.push(x);else normalT.push(x); });
+  var nStat=calcStats(normalT),vStat=calcStats(violT);
+  var h='<div class="stack">';
+  h+='<div class="card"><h3>🎯 Setup 績效</h3>'+breakdownTableRO(setupRows,'Setup')+'</div>';
+  h+='<div class="grid g2"><div class="card"><h3>🌏 盤口績效</h3>'+breakdownTableRO(sessionRows,'盤口')+'</div><div class="card"><h3>😊 情緒績效</h3>'+breakdownTableRO(emotionRows,'情緒')+'</div></div>';
+  h+='<div class="card"><h3>🚦 違規 vs 正常交易</h3><div class="grid g2"><div style="padding:12px;background:var(--green-bg);border-radius:6px;border:1px solid var(--green)"><div style="font-size:12px" class="green">正常交易 ('+normalT.length+' 筆)</div><div class="stat-val '+(nStat.expectancy>=0?'green':'red')+'" style="margin-top:4px">'+(normalT.length?fmtR(nStat.expectancy):'—')+'<span style="font-size:13px;font-weight:400"> /筆</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">勝率 '+(normalT.length?fmtP(nStat.winRate):'—')+' · 總 '+fmtR(nStat.totalR)+'</div></div><div style="padding:12px;background:var(--red-bg);border-radius:6px;border:1px solid var(--red)"><div style="font-size:12px" class="red">違規交易 ('+violT.length+' 筆)</div><div class="stat-val '+(vStat.expectancy>=0?'green':'red')+'" style="margin-top:4px">'+(violT.length?fmtR(vStat.expectancy):'—')+'<span style="font-size:13px;font-weight:400"> /筆</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">勝率 '+(violT.length?fmtP(vStat.winRate):'—')+' · 總 '+fmtR(vStat.totalR)+'</div></div></div></div>';
+  h+='<div class="card"><h3>方向績效</h3>'+breakdownTableRO(dirRows,'方向')+'</div>';
+  h+='</div>'; return h;
+}
+
+function renderRO(){
+  var app=document.getElementById('app');
+  if(VST.loading){ app.innerHTML='<div class="wrap" style="padding:40px 16px;text-align:center;color:var(--text2)"><div class="spin"></div><div style="margin-top:12px">從雲端載入中…</div></div>'; return; }
+  if(VST.error){ app.innerHTML='<div class="wrap" style="padding:40px 16px"><div class="alert amber"><div>⚠️</div><div><div style="font-weight:600;margin-bottom:4px">載入失敗</div><div style="font-size:13px">'+esc(VST.error)+'</div><button class="btn" style="margin-top:12px" onclick="loadPublic()">重試</button></div></div></div>'; return; }
+  var s=calcStats(VST.trades);
+  var tabs=[['dashboard','儀表板'],['trades','明細'],['analysis','分析']];
+  var nav=tabs.map(function(t){return '<button class="'+(VST.tab===t[0]?'active':'')+'" onclick="setV({tab:\''+t[0]+'\'})">'+t[1]+'</button>';}).join('');
+  var body=VST.tab==='dashboard'?viewDashboardRO():VST.tab==='trades'?viewTradesRO():viewAnalysisRO();
+  var when=VST.updatedAt?new Date(VST.updatedAt).toLocaleString():'';
+  var html='<header><div class="wrap"><div class="head-row"><div><div class="head-title">Lucid Trading Journal <span class="badge ls" style="vertical-align:middle">唯讀檢視</span></div><div class="head-sub">1R = 200U · 目標 +15R · 起始 50,000U</div></div><div class="head-stats"><div class="head-stat"><div class="lbl">當前餘額</div><div class="val tnum">'+Math.round(s.currentBalance).toLocaleString()+'<span style="font-size:12px;color:var(--text2);margin-left:4px">U</span></div></div><div class="head-stat"><div class="lbl">總盈虧</div><div class="val tnum '+(s.totalR>0?'green':(s.totalR<0?'red':''))+'">'+fmtR(s.totalR)+'</div></div></div></div><nav>'+nav+'</nav></div></header>';
+  html+='<main><div class="wrap"><div class="ro-banner" style="margin-bottom:16px">👁️ 這是分享的唯讀畫面，無法編輯。'+(when?'資料更新時間：'+esc(when)+'。':'')+'<button class="btn" style="margin-left:auto;padding:4px 10px" onclick="loadPublic()">↻ 重新整理</button></div>'+body+'</div></main>';
+  html+='<footer>Lucid Trading Journal · 唯讀分享版</footer>';
+  app.innerHTML=html;
+  hydrateThumbsRO();
+}
+
+loadPublic();
+</script>
+</body>
+</html>
