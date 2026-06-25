@@ -1268,6 +1268,46 @@ function doCloudDownload() {
     .catch(function(e){ alert('❌ 載入失敗：'+e.message); });
 }
 
+// 建立／更新「公開分享」Gist（與日常私密 Gist 分開）。供唯讀檢視版即時抓取。
+var PUBLIC_GIST_ID_KEY = 'lucid_public_gist_id';
+function getPublicGistId(){ try { return localStorage.getItem(PUBLIC_GIST_ID_KEY) || ''; } catch(e){ return ''; } }
+function setPublicGistId(v){ try { v ? localStorage.setItem(PUBLIC_GIST_ID_KEY, v) : localStorage.removeItem(PUBLIC_GIST_ID_KEY); } catch(e){} }
+function doPublicShare() {
+  var token = getGistToken();
+  if (!token) { alert('要先設定 Token 才能建立分享。請按「⚙️ 雲端設定」。'); state.cloudOpen=true; render(); return; }
+  if (!/^[\x00-\x7F]*$/.test(token)) { alert('Token 含有非英文字元，請重貼乾淨的 ghp_ token。'); return; }
+  var pubId = getPublicGistId();
+  var first = !pubId;
+  if (first && !confirm('要建立一個「公開」Gist 來分享進度嗎？\n\n⚠️ 公開後：知道網址的人都能看到你的交易數據與截圖（無法改回私密，只能刪除重建）。\n你的日常私密 Gist 不受影響，會分開存放。\n\n確定建立？')) return;
+  collectImages().then(function(images){
+    var payload = JSON.stringify(buildPayload(images));
+    var mb = payload.length/1048576;
+    if (mb > 9) { if(!confirm('分享內容約 '+mb.toFixed(1)+'MB，接近 Gist 上限。仍要繼續？')) return; }
+    var body = JSON.stringify({ description:'Lucid Trading Journal (public share)', public:true,
+      files: (function(){ var f={}; f[GIST_FILE]={content:payload}; return f; })() });
+    var url = pubId ? 'https://api.github.com/gists/'+pubId : 'https://api.github.com/gists';
+    var method = pubId ? 'PATCH' : 'POST';
+    alert((first?'建立':'更新')+'公開分享中…按確定後稍候');
+    fetch(url, { method:method, headers:{ 'Authorization':'token '+token, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json' }, body:body })
+      .then(function(r){ if(r.status===401) throw new Error('Token 無效或過期（401）'); if(r.status===404 && pubId) throw new Error('公開 Gist 不存在（404），請清除後重建'); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(data){
+        if (!pubId && data.id) setPublicGistId(data.id);
+        var id = getPublicGistId();
+        var viewUrl = location.origin + location.pathname.replace(/[^\/]*$/, '') + 'view.html#' + id;
+        alert('✅ 公開分享已'+(first?'建立':'更新')+'！\n\n把下面這個唯讀網址傳給家人朋友（iPhone 點開即可，免設定）：\n\n'+viewUrl+'\n\n之後資料有更新，再按一次「🔗 公開分享」即可刷新。');
+        render();
+      })
+      .catch(function(e){ alert('❌ 分享失敗：'+e.message); });
+  });
+}
+function copyPublicViewUrl(){
+  var id = getPublicGistId();
+  if (!id) { alert('還沒建立公開分享，請先按「🔗 公開分享」。'); return; }
+  var viewUrl = location.origin + location.pathname.replace(/[^\/]*$/, '') + 'view.html#' + id;
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(viewUrl).then(function(){ alert('已複製唯讀網址：\n'+viewUrl); }, function(){ window.prompt('複製這個唯讀網址：', viewUrl); });
+  else window.prompt('複製這個唯讀網址：', viewUrl);
+}
+
 // 雲端設定彈窗
 function openCloudSettings(){ state.cloudOpen=true; render(); }
 function closeCloudSettings(ev){ if(ev && ev.target && !ev.target.classList.contains('modal-overlay')) return; captureCloudFields(); state.cloudOpen=false; render(); }
@@ -1288,6 +1328,12 @@ function cloudModalHtml(){
   html += '<label class="fld" style="margin-bottom:12px"><span class="l">GitHub Token（gist 權限）'+(tk?' · 目前：'+masked:'')+'</span><input type="password" id="cloud-token" value="'+esc(tk)+'" placeholder="貼上 ghp_ 開頭的 token" autocomplete="off"></label>';
   html += '<label class="fld" style="margin-bottom:14px"><span class="l">Gist ID（第一次上傳後會自動填入；換裝置時貼上同一個）</span><input type="text" id="cloud-gistid" value="'+esc(gd)+'" placeholder="第一次上傳會自動產生，留空即可"></label>';
   html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"><button class="btn primary" style="flex:1" onclick="saveCloudSettings()">儲存設定</button><button class="btn danger" onclick="clearCloudSettings()">清除</button></div>';
+  // 公開分享區
+  var pubId = getPublicGistId();
+  html += '<div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px"><div style="font-weight:600;margin-bottom:6px">🔗 公開分享給家人朋友</div><div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">建立一個<b>公開</b>快照，產生唯讀網址。對方（含 iPhone）點開即看，免設定、不能改你的資料。<br><span style="color:var(--amber)">⚠ 公開後知道網址者皆可見你的交易數據，無法改回私密（只能刪除重建）。與日常私密同步分開存放。</span></div>';
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" style="flex:1;background:var(--green);border-color:var(--green)" onclick="doPublicShare()">'+(pubId?'更新公開分享':'建立公開分享')+'</button>'+(pubId?'<button class="btn" onclick="copyPublicViewUrl()">複製唯讀網址</button>':'')+'</div>';
+  if (pubId) html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;word-break:break-all">唯讀網址：'+esc(location.origin + location.pathname.replace(/[^\/]*$/, '') + 'view.html#' + pubId)+'</div>';
+  html += '</div>';
   html += '<div style="font-size:12px;color:var(--text2);line-height:1.8;border-top:1px solid var(--border);padding-top:12px"><b>如何取得 Token：</b><br>1. 開 github.com → 右上頭像 → Settings<br>2. 最左下 Developer settings → Personal access tokens → <b>Tokens (classic)</b><br>3. Generate new token (classic)<br>4. 勾選範圍只勾 <b>gist</b> 這一項<br>5. Generate → 複製 ghp_ 開頭那串貼回上面<br><span style="color:var(--amber)">⚠ Token 等於鑰匙，別貼到公開的地方。只勾 gist 權限，風險最小。</span></div>';
   html += '</div></div>';
   return html;
